@@ -1,0 +1,30 @@
+<html>
+  <head>
+    <title>3d Solar System Simulator</title>
+    <style>
+      .container {
+        position: relative;
+      }
+
+      #textCanvas {
+        position: absolute;
+        left: 0px;
+        top: 0px;
+        z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <canvas id="glCanvas" width="1024" height="768"></canvas>
+      <canvas id="textCanvas" width="1024" height="768"></canvas>
+    </div>
+  </body>
+  <script src="./astronomy.js"></script>
+  <script src="./gl-matrix.js"></script>
+  <script src="./util.js"></script>
+  <script src="./programs.js"></script>
+  <script src="./DrawObject.js"></script>
+  <script src="./gl.js"></script>
+</html>
+
