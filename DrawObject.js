@@ -39,7 +39,7 @@ class DrawObject {
     this.updateFn(this, worldContext, deltaTime)
   }
 
-  draw(projectionMatrix, viewMatrix) {
+  draw(projectionMatrix, viewMatrix, context) {
 
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer)
     this.gl.vertexAttribPointer(
@@ -114,7 +114,7 @@ class DrawObject {
 
     this.gl.uniform4fv(
       this.programInfo.uniformLocations.lightWorldPosition,
-      [0.0, 0.0, 0.0, 1.0]
+      [...context.lightPos, 1]
     )
 
     this.gl.drawElements(
@@ -131,7 +131,7 @@ class LineObject extends DrawObject {
     super(gl, drawInfo, programInfo)
   }
 
-  draw(projectionMatrix, viewMatrix) {
+  draw(projectionMatrix, viewMatrix, context) {
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer)
     this.gl.vertexAttribPointer(
       this.programInfo.attribLocations.vertexPosition,

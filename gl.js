@@ -1,5 +1,7 @@
 const webGLProgram = (scaleStuff) => {
 
+  const COORD_SCALE = 100
+
   const cameraDefaults = {
     far: {
       dist: 1800,
@@ -76,12 +78,14 @@ const webGLProgram = (scaleStuff) => {
     const viewMatrix = mat4.create()
     mat4.invert(viewMatrix, cameraMatrix)
 
+    const lightPos = Object.values(drawObjects['Sun'].state.pos).map(x => x*COORD_SCALE)
+
     for (const o of Object.values(drawObjects)) {
-      o.draw(projectionMatrix, viewMatrix)
+      o.draw(projectionMatrix, viewMatrix, { lightPos })
     }
     if (worldContext.displayData.drawXYZLines) {
       for (const o of Object.values(lineObjects)) {
-        o.draw(projectionMatrix, viewMatrix)
+        o.draw(projectionMatrix, viewMatrix, worldContext)
       }
     }
 
@@ -141,7 +145,7 @@ const webGLProgram = (scaleStuff) => {
         self.state.pos.y,
         self.state.pos.z,
         0.0
-      ].map(coord => coord*(scaleStuff ? 100 : 25))//coord * 25)
+      ].map(coord => coord*(scaleStuff ? COORD_SCALE : 25))//coord * 25)
     }
 
     const colFromRGB = (r, g, b) => ([r/256, g/256, b/256, 1.0])
@@ -235,20 +239,6 @@ const webGLProgram = (scaleStuff) => {
               z: bodyLocation.y
             }
           })
-          /*
-          if (bodyName === 'Sun') {
-            drawObjects[bodyName].setState({
-              // openGL transform
-              pos: {
-                x: 1,
-                y: 1,
-                z: 1,
-              }
-            })
-          }
-          */
-        } else {
-          //console.log(`skip ${body.Name}`)
         }
       }
       ++currentSimulationDayIndex
