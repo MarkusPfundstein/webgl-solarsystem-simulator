@@ -29,6 +29,31 @@ const loadPrograms = () => {
     return shaderProgram
   }
 
+  const vsLine = `
+    attribute vec4 aVertexPosition;
+    attribute vec4 aVertexColor;
+
+    uniform mat4 uModelViewMatrix;
+    uniform mat4 uProjectionMatrix;
+    uniform vec4 aTranslation;
+
+    varying highp vec4 vColor;
+
+    void main() {
+      gl_Position = uProjectionMatrix * uModelViewMatrix * (aVertexPosition + aTranslation);
+      vColor = aVertexColor;
+    }
+  `
+
+  const fsLine = `
+
+    varying highp vec4 vColor;
+
+    void main() {
+      gl_FragColor = vec4(vColor.rgb * 0.5, vColor.a); 
+    }
+  `
+
   const vsPlanet = `
     attribute vec4 aVertexPosition;
     attribute vec4 aVertexColor;
@@ -76,10 +101,12 @@ const loadPrograms = () => {
 
     void main() {
       // no light
-  //    gl_FragColor = vec4(vColor.rgb, vColor.a);
+      gl_FragColor = vec4(vColor.rgb, vColor.a);
       
       // fraction light
-      gl_FragColor = vec4(vColor.rgb * 1.0/(1.0-vLightning), vColor.a);
+      //gl_FragColor = vec4(vColor.rgb * 1.0/(1.0-vLightning), vColor.a);
+
+      //gl_FragColor = vec4(vColor.rgb * vLightning, vColor.a);
 
 //       normal debug
   //    gl_FragColor = vec4(vNormal * 0.5 + 0.5, 1);
@@ -108,8 +135,28 @@ const loadPrograms = () => {
     return programInfo
   }
 
+  const loadLineProgramInfo = (gl) => {
+    const shaderProgram = initShaderProgram(gl, vsLine, fsLine)
+
+    const programInfo = {
+      program: shaderProgram,
+      attribLocations: {
+        vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+        vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor'),
+      },
+      uniformLocations: {
+        projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+        modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+        translation: gl.getUniformLocation(shaderProgram, 'aTranslation'),
+      },
+    }
+
+    return programInfo
+  }
+
   return {
-    loadPlanetProgramInfo
+    loadPlanetProgramInfo,
+    loadLineProgramInfo,
   }
 }
 

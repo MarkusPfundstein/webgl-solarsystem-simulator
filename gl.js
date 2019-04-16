@@ -1,133 +1,6 @@
-const webGLProgram = () => {
+const webGLProgram = (scaleStuff) => {
 
-  const makeCube = (gl, scale, monoColor, updateFn) => {
-    const positions = [
-      // Front face
-      -1.0, -1.0,  1.0,
-       1.0, -1.0,  1.0,
-       1.0,  1.0,  1.0,
-      -1.0,  1.0,  1.0,
-      
-      // Back face
-      -1.0, -1.0, -1.0,
-      -1.0,  1.0, -1.0,
-       1.0,  1.0, -1.0,
-       1.0, -1.0, -1.0,
-      
-      // Top face
-      -1.0,  1.0, -1.0,
-      -1.0,  1.0,  1.0,
-       1.0,  1.0,  1.0,
-       1.0,  1.0, -1.0,
-      
-      // Bottom face
-      -1.0, -1.0, -1.0,
-       1.0, -1.0, -1.0,
-       1.0, -1.0,  1.0,
-      -1.0, -1.0,  1.0,
-      
-      // Right face
-       1.0, -1.0, -1.0,
-       1.0,  1.0, -1.0,
-       1.0,  1.0,  1.0,
-       1.0, -1.0,  1.0,
-      
-      // Left face
-      -1.0, -1.0, -1.0,
-      -1.0, -1.0,  1.0,
-      -1.0,  1.0,  1.0,
-      -1.0,  1.0, -1.0,
-    ].map(x=>x)//x*scale/8)
-
-    const normals = [
-      // Front
-       0.0,  0.0,  1.0,
-       0.0,  0.0,  1.0,
-       0.0,  0.0,  1.0,
-       0.0,  0.0,  1.0,
-
-      // Back
-       0.0,  0.0, -1.0,
-       0.0,  0.0, -1.0,
-       0.0,  0.0, -1.0,
-       0.0,  0.0, -1.0,
-
-      // Top
-       0.0,  1.0,  0.0,
-       0.0,  1.0,  0.0,
-       0.0,  1.0,  0.0,
-       0.0,  1.0,  0.0,
-
-      // Bottom
-       0.0, -1.0,  0.0,
-       0.0, -1.0,  0.0,
-       0.0, -1.0,  0.0,
-       0.0, -1.0,  0.0,
-
-      // Right
-       1.0,  0.0,  0.0,
-       1.0,  0.0,  0.0,
-       1.0,  0.0,  0.0,
-       1.0,  0.0,  0.0,
-
-      // Left
-      -1.0,  0.0,  0.0,
-      -1.0,  0.0,  0.0,
-      -1.0,  0.0,  0.0,
-      -1.0,  0.0,  0.0
-    ];
-
-    const indices = [
-      0,  1,  2,      0,  2,  3,    // front
-      4,  5,  6,      4,  6,  7,    // back
-      8,  9,  10,     8,  10, 11,   // top
-      12, 13, 14,     12, 14, 15,   // bottom
-      16, 17, 18,     16, 18, 19,   // right
-      20, 21, 22,     20, 22, 23,   // left
-    ];
-
-    // front face, back face, top face, bottom face, right face, left face
-    const faceColors = [
-      monoColor,  
-      monoColor,
-      monoColor,
-      monoColor,
-      monoColor,
-      monoColor,
-    ]
-    let colors = [];
-
-    for (let c of faceColors) {
-      // Repeat each color four times for the four vertices of the face
-      colors = colors.concat(c, c, c, c);
-    }
-    
-    const drawInfo = {
-      positions,
-      normals,
-      indices,
-      nComponents: 3,
-      colors,
-    }
-
-
-    const programInfo = programs.loadPlanetProgramInfo(gl)
-    const cube = new DrawObject(gl, drawInfo, programInfo)
-
-    cube.setState({
-      pos: {
-        x: 0.0,
-        y: 0.0,
-        z: 0.0,
-      }
-    })
-
-    cube.setUpdateFn(updateFn)
-    
-    return cube
-  }
-
-  const drawScene = (gl, textContext, drawObjects, worldContext, deltaTime) => {
+  const drawScene = (gl, textContext, drawObjects, lineObjects, worldContext, deltaTime) => {
     gl.clearColor(0.0, 0.0, 0.0, 1.0)
     gl.clearDepth(1.0)
     gl.enable(gl.DEPTH_TEST)
@@ -162,7 +35,7 @@ const webGLProgram = () => {
     mat4.rotate(
       modelViewMatrix,
       modelViewMatrix, 
-      -50 * Math.PI / 180,
+      worldContext.camera.pitch * Math.PI / 180,
       [1, 0, 0]
     )
     mat4.rotate(
@@ -174,6 +47,11 @@ const webGLProgram = () => {
 
     for (const o of Object.values(drawObjects)) {
       o.draw(projectionMatrix, modelViewMatrix)
+    }
+    if (worldContext.displayData.drawXYZLines) {
+      for (const o of Object.values(lineObjects)) {
+        o.draw(projectionMatrix, modelViewMatrix)
+      }
     }
 
     textContext.save()
@@ -224,7 +102,7 @@ const webGLProgram = () => {
       return dates
     };
 
-    const simulationDays = getDates(new Date(1800, 1, 1), new Date())
+    const simulationDays = getDates(new Date(1822, 1, 1), new Date())
 
     const planetUpdateFn = (self, worldContext, deltaTime) => {
       self.translation = [
@@ -232,22 +110,23 @@ const webGLProgram = () => {
         self.state.pos.y,
         self.state.pos.z,
         0.0
-      ].map(coord => coord*10)//coord * 25)
+      ].map(coord => coord*(scaleStuff ? 100 : 5))//coord * 25)
     }
 
     const colFromRGB = (r, g, b) => ([r/256, g/256, b/256, 1.0])
 
-    const sun = makeCube(gl, 100, [1.0, 1.0, 0.0, 1.0], planetUpdateFn)
-    const mercury = makeCube(gl, 0.33, colFromRGB(106, 106, 106), planetUpdateFn)
-    const venus = makeCube(gl, 1, colFromRGB(238, 193, 116), planetUpdateFn)
-    const earth = makeCube(gl, 1, [0.0, 1.0, 0.0, 1.0], planetUpdateFn)
-    const mars = makeCube(gl, 1/2, colFromRGB(236, 138, 106), planetUpdateFn)
-    const jupiter = makeCube(gl, 11, colFromRGB(233, 233, 240), planetUpdateFn)
-    const saturn = makeCube(gl, 9.5, colFromRGB(225, 187, 103), planetUpdateFn)
-    const uranus = makeCube(gl, 14.5, colFromRGB(208, 238, 241), planetUpdateFn)
-    const neptune = makeCube(gl, 4, colFromRGB(77, 113, 246), planetUpdateFn)
-    const pluto = makeCube(gl, 20/2, colFromRGB(68, 30, 21), planetUpdateFn)
-    const ceres = makeCube(gl, 1, colFromRGB(255, 0, 0), planetUpdateFn)
+    const base = scaleStuff ? 3 : 1
+    const sun = objects.makeCube(gl, scaleStuff ? base*10 : 1, [1.0, 1.0, 0.0, 1.0], planetUpdateFn)
+    const mercury = objects.makeCube(gl, scaleStuff ? base*0.33 : 1, colFromRGB(186, 186, 186), planetUpdateFn)
+    const venus = objects.makeCube(gl, scaleStuff ? base : 1, colFromRGB(238, 193, 116), planetUpdateFn)
+    const earth = objects.makeCube(gl, scaleStuff ? base : 1, [0.0, 1.0, 0.0, 1.0], planetUpdateFn)
+    const mars = objects.makeCube(gl, scaleStuff ? base*1/2 : 1, colFromRGB(236, 138, 106), planetUpdateFn)
+    const jupiter = objects.makeCube(gl, scaleStuff ? base*2 : 1, colFromRGB(233, 233, 240), planetUpdateFn)
+    const saturn = objects.makeCube(gl, scaleStuff ? base*2 :1, colFromRGB(225, 187, 103), planetUpdateFn)
+    const uranus = objects.makeCube(gl, scaleStuff ? base*2 :1, colFromRGB(208, 238, 241), planetUpdateFn)
+    const neptune = objects.makeCube(gl, scaleStuff ? base*1.5 :1, colFromRGB(77, 113, 246), planetUpdateFn)
+    const pluto = objects.makeCube(gl, scaleStuff ? base : 1, colFromRGB(68, 30, 21), planetUpdateFn)
+    const ceres = objects.makeCube(gl, scaleStuff ? base :1, colFromRGB(255, 0, 0), planetUpdateFn)
 
     const drawObjects = {
       Sun: sun,
@@ -267,25 +146,57 @@ const webGLProgram = () => {
       camera: {
         x: 0,
         y: 0,
-        z: -225.0,
+        z: -750,
         yaw: -50,
         roll: 150,
+        pitch: -50,
       },
       displayData: {
         currentDay: null,
+        drawXYZLines: true,
+      },
+      simulation: {
+        paused: false,
       }
+    }
+
+    const xLine = objects.makeLine(gl, [1.0, 0.0, 0.0, 1], [-10000, 0, 0], [10000, 0, 0]) 
+    const yLine = objects.makeLine(gl, [0.0, 1.0, 0.0, 1], [0, -10000, 0], [0, 10000, 0]) 
+    const zLine = objects.makeLine(gl, [0.0, 0.0, 1.0, 1], [0, 0, -10000], [0, 0, 10000]) 
+
+    const lineObjects = {
+      xLine,
+      yLine,
+      zLine,
     }
 
     let currentSimulationDayIndex = 0
     const calcNewPositions = () => {
+      if (worldContext.simulation.paused === true) {
+        return
+      }
       const simDay = simulationDays[currentSimulationDayIndex]
 
       worldContext.displayData.currentDay = simDay
       const astroDay = Astronomy.DayValue(simDay)
       for (const body of Astronomy.Body) {
-        if (drawObjects[body.Name]) {
+        const bodyName = body.Name
+        if (drawObjects[bodyName]) {
           const bodyLocation = body.EclipticCartesianCoordinates(astroDay)
-          drawObjects[body.Name].setState({
+
+          /*
+          if (bodyName === 'Earth') {
+            console.log(
+              Math.sqrt(
+                Math.pow(bodyLocation.x, 2) +
+                Math.pow(bodyLocation.y, 2) +
+                Math.pow(bodyLocation.z, 2)
+              )
+            )
+          }
+          */
+
+          drawObjects[bodyName].setState({
             pos: {
               ...bodyLocation,
             }
@@ -313,7 +224,7 @@ const webGLProgram = () => {
         o.update(worldContext, deltaTime)
       }
 
-      drawScene(gl, textCtx, drawObjects, worldContext, deltaTime)
+      drawScene(gl, textCtx, drawObjects, lineObjects, worldContext, deltaTime)
       requestAnimationFrame(render)
     }
     requestAnimationFrame(render)
@@ -325,7 +236,6 @@ const webGLProgram = () => {
 
       let handled = false;
       if (event.key !== undefined) {
-        console.log(event)
         switch (event.key) {
           case 'w':
             worldContext.camera.z += 25;
@@ -339,10 +249,18 @@ const webGLProgram = () => {
           case 'd':
             worldContext.camera.x -= 25;
             break;
+            // pitch -> x axis
+          case 'r':
+            worldContext.camera.pitch += 25;
+            break;
+          case 'f':
+            worldContext.camera.pitch += 25;
+            break;
+          // jaw: z Axis
           case 'q':
             worldContext.camera.yaw += 25;
             break;
-          case 'e':
+            case 'e':
             worldContext.camera.yaw -= 25;
             break;
           case 'z':
@@ -351,11 +269,15 @@ const webGLProgram = () => {
           case 'x':
             worldContext.camera.roll -= 25;
             break;
+          case 'l':
+            worldContext.displayData.drawXYZLines = !worldContext.displayData.drawXYZLines
+            break;
+          case ' ':
+            if (event.code === 'Space') {
+              worldContext.simulation.paused = !worldContext.simulation.paused
+            }
         }
-      } else if (event.keyIdentifier !== undefined) {
-      } else if (event.keyCode !== undefined) {
-      }
-
+      } 
       if (handled) {
       // Suppress "double action" if event handled
       event.preventDefault();
@@ -371,4 +293,4 @@ const webGLProgram = () => {
   }
 }
 
-webGLProgram()
+webGLProgram(true)
