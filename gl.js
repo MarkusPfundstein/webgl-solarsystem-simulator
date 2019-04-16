@@ -102,11 +102,12 @@ const webGLProgram = (scaleStuff) => {
 
     textContext.translate(0, 0)
     textContext.fillStyle = '#FF0000'
-    textContext.font = '28px serif'
+    textContext.font = '18px serif'
   
     const currentSimDay = worldContext.displayData.currentDay
 
-    textContext.fillText(`${currentSimDay.getMonth()+1}/${currentSimDay.getFullYear()}`, 20, 34)
+    textContext.fillText(`Month: ${currentSimDay.getMonth()+1}, Year: ${currentSimDay.getFullYear()}`, 20, 34)
+    textContext.fillText(`${worldContext.simulation.helioCentric ? 'Heliocentric' : 'Geocentric'}`, 20, 55)
   }
 
   const run = () => {
@@ -194,7 +195,7 @@ const webGLProgram = (scaleStuff) => {
       simulation: {
         paused: false,
         helioCentric: true,
-        speed: 25,
+        speed: 15//25,
       },
       cameraDefaults,
     }
