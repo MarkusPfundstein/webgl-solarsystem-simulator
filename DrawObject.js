@@ -8,11 +8,16 @@ class DrawObject {
     this.colorBuffer = drawInfo.colors && util.makeGLArrayBuffer(gl, drawInfo.colors)
     this.drawInfo = {
       nIndices: drawInfo.indices ? drawInfo.indices.length : drawInfo.nVertices,
+      applyLight: drawInfo.applyLight || true,
     }
     this.programInfo = programInfo
     this.translation = [0.0, 0.0, 0.0, 0.0]
     this.updateFn = () => {}
     this.state = {}
+  }
+
+  setApplyLight(apply) {
+    this.drawInfo.applyLight = apply;
   }
 
   setColors(colors) {
@@ -34,7 +39,7 @@ class DrawObject {
     this.updateFn(this, worldContext, deltaTime)
   }
 
-  draw(projectionMatrix, modelViewMatrix) {
+  draw(projectionMatrix, viewMatrix) {
 
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer)
     this.gl.vertexAttribPointer(
@@ -75,10 +80,6 @@ class DrawObject {
 
     this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer)
 
-    const normalMatrix = mat4.create();
-    mat4.invert(normalMatrix, modelViewMatrix);
-    mat4.transpose(normalMatrix, normalMatrix);
-
     this.gl.useProgram(this.programInfo.program)
 
     this.gl.uniformMatrix4fv(
@@ -86,27 +87,34 @@ class DrawObject {
       false,
       projectionMatrix
     )
-    
-    this.gl.uniformMatrix4fv(
-      this.programInfo.uniformLocations.modelViewMatrix,
-      false,
-      modelViewMatrix
-    )
 
-    this.gl.uniform4fv(
-      this.programInfo.uniformLocations.translation, 
+    const modelMatrix = mat4.create()
+    mat4.translate(
+      modelMatrix,
+      modelMatrix,
       this.translation
     )
 
     this.gl.uniformMatrix4fv(
-      this.programInfo.uniformLocations.normalMatrix,
+      this.programInfo.uniformLocations.modelMatrix,
       false,
-      normalMatrix
+      modelMatrix
     )
 
-    this.gl.uniform3fv(
-      this.programInfo.uniformLocations.uLightWorldPosition,
-      [0.0, 0.0, 0.0]
+    this.gl.uniformMatrix4fv(
+      this.programInfo.uniformLocations.viewMatrix,
+      false,
+      viewMatrix
+    )
+
+    this.gl.uniform1i(
+      this.programInfo.uniformLocations.applyLight,
+      this.drawInfo.applyLight
+    )
+
+    this.gl.uniform4fv(
+      this.programInfo.uniformLocations.lightWorldPosition,
+      [0.0, 0.0, 0.0, 1.0]
     )
 
     this.gl.drawElements(
@@ -123,7 +131,7 @@ class LineObject extends DrawObject {
     super(gl, drawInfo, programInfo)
   }
 
-  draw(projectionMatrix, modelViewMatrix) {
+  draw(projectionMatrix, viewMatrix) {
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer)
     this.gl.vertexAttribPointer(
       this.programInfo.attribLocations.vertexPosition,
@@ -148,23 +156,31 @@ class LineObject extends DrawObject {
 
     this.gl.useProgram(this.programInfo.program)
 
+    const modelMatrix = mat4.create()
+    mat4.translate(
+      modelMatrix,
+      modelMatrix,
+      this.translation
+    )
+
     this.gl.uniformMatrix4fv(
       this.programInfo.uniformLocations.projectionMatrix,
       false,
       projectionMatrix
     )
-    
+
     this.gl.uniformMatrix4fv(
-      this.programInfo.uniformLocations.modelViewMatrix,
+      this.programInfo.uniformLocations.modelMatrix,
       false,
-      modelViewMatrix
+      modelMatrix
     )
 
-    this.gl.uniform4fv(
-      this.programInfo.uniformLocations.translation, 
-      this.translation
+    this.gl.uniformMatrix4fv(
+      this.programInfo.uniformLocations.viewMatrix,
+      false,
+      viewMatrix
     )
-
+    
     this.gl.drawElements(
       this.gl.LINES,
       this.drawInfo.nIndices,

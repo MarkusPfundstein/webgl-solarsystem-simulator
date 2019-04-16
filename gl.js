@@ -1,5 +1,38 @@
 const webGLProgram = (scaleStuff) => {
 
+  const cameraDefaults = {
+    far: {
+      dist: 1800,
+      rotY: 50,
+      rotX: 50,
+      rotZ: 0,
+    },
+    near: {
+      dist: 500,
+      rotY: 50,
+      rotX: 50,
+      rotZ: 0,
+    },
+    '2dtop': {
+      dist: 675,
+      rotX: -190, // 175-190
+      rotY: 0,
+      rotZ: 0 
+    },
+    '2dside': {
+      dist: 675,
+      rotX: 0,
+      rotY: 180,
+      rotZ: 0 
+    },
+    'galactic': {
+      dist: 925,
+      rotX: -90,
+      rotY: -375,
+      rotZ: -25
+    },
+  }
+
   const drawScene = (gl, textContext, drawObjects, lineObjects, worldContext, deltaTime) => {
     gl.clearColor(0.0, 0.0, 0.0, 1.0)
     gl.clearDepth(1.0)
@@ -13,44 +46,42 @@ const webGLProgram = (scaleStuff) => {
     const fieldOfView = 45 * Math.PI / 180
     const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight
     const zNear = 0.1
-    const zFar = 5500.0
+    const zFar = 105500.0
     const projectionMatrix = mat4.create()
 
     mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar)
 
-    const modelViewMatrix = mat4.create()
+    const eye = [0,0,1];
+    // where you are looking at
+    const center = [0, 0, 0];
+    const up = [0, 1, 0];
 
-    mat4.identity(modelViewMatrix)
-    mat4.translate(
-      modelViewMatrix, 
-      modelViewMatrix, 
-      [worldContext.camera.x, worldContext.camera.y, worldContext.camera.z]
-    )
-    mat4.rotate(
-      modelViewMatrix,
-      modelViewMatrix,
-      worldContext.camera.yaw * Math.PI / 180, 
-      [0, 0, 1]
-    )
-    mat4.rotate(
-      modelViewMatrix,
-      modelViewMatrix, 
-      worldContext.camera.pitch * Math.PI / 180,
-      [1, 0, 0]
-    )
-    mat4.rotate(
-      modelViewMatrix,
-      modelViewMatrix,
-      worldContext.camera.roll * Math.PI / 180, 
-      [0, 1, 0]
-    )
+    const cameraMatrix =  mat4.create()
+    mat4.lookAt(cameraMatrix, eye, center, up)
+    mat4.rotateZ(
+      cameraMatrix,
+      cameraMatrix,
+      worldContext.camera.rotZ)
+    mat4.rotateX(
+      cameraMatrix,
+      cameraMatrix,
+      worldContext.camera.rotX)
+    mat4.rotateY(
+      cameraMatrix,
+      cameraMatrix,
+      worldContext.camera.rotY)
+        
+    mat4.translate(cameraMatrix, cameraMatrix, [0,0,worldContext.camera.dist])
+       
+    const viewMatrix = mat4.create()
+    mat4.invert(viewMatrix, cameraMatrix)
 
     for (const o of Object.values(drawObjects)) {
-      o.draw(projectionMatrix, modelViewMatrix)
+      o.draw(projectionMatrix, viewMatrix)
     }
     if (worldContext.displayData.drawXYZLines) {
       for (const o of Object.values(lineObjects)) {
-        o.draw(projectionMatrix, modelViewMatrix)
+        o.draw(projectionMatrix, viewMatrix)
       }
     }
 
@@ -110,23 +141,26 @@ const webGLProgram = (scaleStuff) => {
         self.state.pos.y,
         self.state.pos.z,
         0.0
-      ].map(coord => coord*(scaleStuff ? 100 : 5))//coord * 25)
+      ].map(coord => coord*(scaleStuff ? 100 : 25))//coord * 25)
     }
 
     const colFromRGB = (r, g, b) => ([r/256, g/256, b/256, 1.0])
 
     const base = scaleStuff ? 3 : 1
-    const sun = objects.makeCube(gl, scaleStuff ? base*10 : 1, [1.0, 1.0, 0.0, 1.0], planetUpdateFn)
-    const mercury = objects.makeCube(gl, scaleStuff ? base*0.33 : 1, colFromRGB(186, 186, 186), planetUpdateFn)
-    const venus = objects.makeCube(gl, scaleStuff ? base : 1, colFromRGB(238, 193, 116), planetUpdateFn)
-    const earth = objects.makeCube(gl, scaleStuff ? base : 1, [0.0, 1.0, 0.0, 1.0], planetUpdateFn)
-    const mars = objects.makeCube(gl, scaleStuff ? base*1/2 : 1, colFromRGB(236, 138, 106), planetUpdateFn)
-    const jupiter = objects.makeCube(gl, scaleStuff ? base*2 : 1, colFromRGB(233, 233, 240), planetUpdateFn)
-    const saturn = objects.makeCube(gl, scaleStuff ? base*2 :1, colFromRGB(225, 187, 103), planetUpdateFn)
-    const uranus = objects.makeCube(gl, scaleStuff ? base*2 :1, colFromRGB(208, 238, 241), planetUpdateFn)
-    const neptune = objects.makeCube(gl, scaleStuff ? base*1.5 :1, colFromRGB(77, 113, 246), planetUpdateFn)
-    const pluto = objects.makeCube(gl, scaleStuff ? base : 1, colFromRGB(68, 30, 21), planetUpdateFn)
-    const ceres = objects.makeCube(gl, scaleStuff ? base :1, colFromRGB(255, 0, 0), planetUpdateFn)
+    const sun = objects.makeSphere(gl, scaleStuff ? base*8 : 1, [1.0, 1.0, 0.0, 1.0], planetUpdateFn)
+    sun.setApplyLight(false)
+    const mercury = objects.makeSphere(gl, scaleStuff ? base*2/3 : 1, colFromRGB(186, 186, 186), planetUpdateFn)
+    const venus = objects.makeSphere(gl, scaleStuff ? base : 1, colFromRGB(238, 193, 116), planetUpdateFn)
+    const earth = objects.makeSphere(gl, scaleStuff ? base : 1, [0.0, 1.0, 0.0, 1.0], planetUpdateFn)
+    const mars = objects.makeSphere(gl, scaleStuff ? base*2/3 : 1, colFromRGB(236, 138, 106), planetUpdateFn)
+    const jupiter = objects.makeSphere(gl, scaleStuff ? base*2 : 1, colFromRGB(233, 233, 240), planetUpdateFn)
+    const saturn = objects.makeSphere(gl, scaleStuff ? base*2 :1, colFromRGB(225, 187, 103), planetUpdateFn)
+    const uranus = objects.makeSphere(gl, scaleStuff ? base*2 :1, colFromRGB(208, 238, 241), planetUpdateFn)
+    const neptune = objects.makeSphere(gl, scaleStuff ? base*1.5 :1, colFromRGB(77, 113, 246), planetUpdateFn)
+    const pluto = objects.makeSphere(gl, scaleStuff ? base*1.5 : 1, colFromRGB(68, 30, 21), planetUpdateFn)
+    const ceres = objects.makeSphere(gl, scaleStuff ? base*0.5 : 1, colFromRGB(238, 0, 0), planetUpdateFn)
+    // for some reason, the last element to draw before other stuff must be a cube :P
+    const bugFixer= objects.makeCube(gl, scaleStuff ? base : 1, colFromRGB(0, 0, 0), (self) => {self.translation = [-1000000,-1000000,-1000000]})
 
     const drawObjects = {
       Sun: sun,
@@ -140,16 +174,12 @@ const webGLProgram = (scaleStuff) => {
       Neptune: neptune,
       Pluto: pluto,
       Ceres: ceres,
+      __BUGFIXER: bugFixer,
     }
 
     const worldContext = { 
       camera: {
-        x: 0,
-        y: 0,
-        z: -750,
-        yaw: -50,
-        roll: 150,
-        pitch: -50,
+        ...cameraDefaults.near
       },
       displayData: {
         currentDay: null,
@@ -157,17 +187,25 @@ const webGLProgram = (scaleStuff) => {
       },
       simulation: {
         paused: false,
-      }
+        helioCentric: true,
+      },
+      cameraDefaults,
     }
 
-    const xLine = objects.makeLine(gl, [1.0, 0.0, 0.0, 1], [-10000, 0, 0], [10000, 0, 0]) 
-    const yLine = objects.makeLine(gl, [0.0, 1.0, 0.0, 1], [0, -10000, 0], [0, 10000, 0]) 
-    const zLine = objects.makeLine(gl, [0.0, 0.0, 1.0, 1], [0, 0, -10000], [0, 0, 10000]) 
+    const xLine = objects.makeLine(gl, [1.0, 0.0, 0.0, 1], [0, 0, 0], [10000, 0, 0]) 
+    const xLineNeg = objects.makeLine(gl, [0.5, 0.0, 0.0, 1], [0, 0, 0], [-10000, 0, 0]) 
+    const yLine = objects.makeLine(gl, [0.0, 1.0, 0.0, 1], [0, 0, 0], [0, 10000, 0]) 
+    const yLineNeg = objects.makeLine(gl, [0.0, 0.5, 0.0, 1], [0, 0, 0], [0, -10000, 0]) 
+    const zLine = objects.makeLine(gl, [0.0, 0.0, 1.0, 1], [0, 0, 0], [0, 0, 10000]) 
+    const zLineNeg = objects.makeLine(gl, [0.0, 0.0, 0.5, 1], [0, 0, 0], [0, 0, -10000]) 
 
     const lineObjects = {
       xLine,
+      xLineNeg,
       yLine,
+      yLineNeg,
       zLine,
+      zLineNeg,
     }
 
     let currentSimulationDayIndex = 0
@@ -182,25 +220,33 @@ const webGLProgram = (scaleStuff) => {
       for (const body of Astronomy.Body) {
         const bodyName = body.Name
         if (drawObjects[bodyName]) {
-          const bodyLocation = body.EclipticCartesianCoordinates(astroDay)
-
-          /*
-          if (bodyName === 'Earth') {
-            console.log(
-              Math.sqrt(
-                Math.pow(bodyLocation.x, 2) +
-                Math.pow(bodyLocation.y, 2) +
-                Math.pow(bodyLocation.z, 2)
-              )
-            )
+          let bodyLocation;
+          if (worldContext.simulation.helioCentric) {
+            bodyLocation = body.EclipticCartesianCoordinates(astroDay)
+          } else {
+            bodyLocation = body.GeocentricCoordinates(astroDay)
           }
-          */
 
           drawObjects[bodyName].setState({
+            // openGL transform
             pos: {
-              ...bodyLocation,
+              x: bodyLocation.x,
+              y: bodyLocation.z,
+              z: bodyLocation.y
             }
           })
+          /*
+          if (bodyName === 'Sun') {
+            drawObjects[bodyName].setState({
+              // openGL transform
+              pos: {
+                x: 1,
+                y: 1,
+                z: 1,
+              }
+            })
+          }
+          */
         } else {
           //console.log(`skip ${body.Name}`)
         }
@@ -227,62 +273,9 @@ const webGLProgram = (scaleStuff) => {
       drawScene(gl, textCtx, drawObjects, lineObjects, worldContext, deltaTime)
       requestAnimationFrame(render)
     }
+    initControls(worldContext)
+
     requestAnimationFrame(render)
-
-    window.addEventListener('keydown', (event) => {
-      if (event.defaultPrevented) {
-        return; // Should do nothing if the default action has been cancelled
-      }
-
-      let handled = false;
-      if (event.key !== undefined) {
-        switch (event.key) {
-          case 'w':
-            worldContext.camera.z += 25;
-            break;
-          case 's':
-            worldContext.camera.z -= 25;
-            break;
-          case 'a':
-            worldContext.camera.x += 25;
-            break;
-          case 'd':
-            worldContext.camera.x -= 25;
-            break;
-            // pitch -> x axis
-          case 'r':
-            worldContext.camera.pitch += 25;
-            break;
-          case 'f':
-            worldContext.camera.pitch += 25;
-            break;
-          // jaw: z Axis
-          case 'q':
-            worldContext.camera.yaw += 25;
-            break;
-            case 'e':
-            worldContext.camera.yaw -= 25;
-            break;
-          case 'z':
-            worldContext.camera.roll += 25;
-            break;
-          case 'x':
-            worldContext.camera.roll -= 25;
-            break;
-          case 'l':
-            worldContext.displayData.drawXYZLines = !worldContext.displayData.drawXYZLines
-            break;
-          case ' ':
-            if (event.code === 'Space') {
-              worldContext.simulation.paused = !worldContext.simulation.paused
-            }
-        }
-      } 
-      if (handled) {
-      // Suppress "double action" if event handled
-      event.preventDefault();
-      }
-    }, true)
   }
 
   try {

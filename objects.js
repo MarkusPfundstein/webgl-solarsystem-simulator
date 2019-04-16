@@ -1,5 +1,80 @@
 const makeObjects = () => {
 
+  const makeSphere = (gl, scale, color, updateFn) => {
+    const latitudeBands = 50;
+    const longitudeBands = 50;
+    const radius = 2;
+    const vertexPositionData = [];
+    const normalData = [];
+    const textureCoordData = [];
+    const indexData = [];
+    const colorData = []
+    // Calculate sphere vertex positions, normals, and texture coordinates.
+    for (let latNumber = 0; latNumber <= latitudeBands; ++latNumber) {
+      const theta = latNumber * Math.PI / latitudeBands;
+      const sinTheta = Math.sin(theta);
+      const cosTheta = Math.cos(theta);
+      for (let longNumber = 0; longNumber <= longitudeBands; ++longNumber) {
+        const phi = longNumber * 2 * Math.PI / longitudeBands;
+        const sinPhi = Math.sin(phi);
+        const cosPhi = Math.cos(phi);
+        const x = cosPhi * sinTheta * scale/2;
+        const y = cosTheta * scale/2;
+        const z = sinPhi * sinTheta * scale/2;
+        const u = 1 - (longNumber / longitudeBands);
+        const v = 1 - (latNumber / latitudeBands);
+        vertexPositionData.push(radius * x);
+        vertexPositionData.push(radius * y);
+        vertexPositionData.push(radius * z);
+        normalData.push(x);
+        normalData.push(y);
+        normalData.push(z);
+        textureCoordData.push(u);
+        textureCoordData.push(v);
+        for (let c of color) {
+          colorData.push(c)
+        }
+      }
+    }
+    // Calculate sphere indices.
+    for (let latNumber = 0; latNumber < latitudeBands; ++latNumber) {
+      for (let longNumber = 0; longNumber < longitudeBands; ++longNumber) {
+        const first = (latNumber * (longitudeBands + 1)) + longNumber;
+        const second = first + longitudeBands + 1;
+        indexData.push(first);
+        indexData.push(second);
+        indexData.push(first + 1);
+        indexData.push(second);
+        indexData.push(second + 1);
+        indexData.push(first + 1);
+      }
+    }
+    const nVertices = indexData.length
+
+    const drawInfo = {
+      positions: vertexPositionData,
+      normals: normalData,
+      indices: indexData,
+      colors: colorData,
+    }
+
+    const programInfo = programs.loadPlanetProgramInfo(gl)
+
+    const sphere = new DrawObject(gl, drawInfo, programInfo)
+
+    sphere.setState({
+      pos: {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+      }
+    })
+
+    sphere.setUpdateFn(updateFn)
+    
+    return sphere
+  }
+
   const makeLine = (gl, color, from, to) => {
     const positions = [
       ...from,
@@ -158,6 +233,7 @@ const makeObjects = () => {
   return {
     makeCube,
     makeLine,
+    makeSphere,
   }
 }
 

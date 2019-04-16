@@ -4,6 +4,7 @@
     <style>
       .container {
         position: relative;
+        margin-bottom: 10px;
       }
 
       #textCanvas {
@@ -19,6 +20,24 @@
       <canvas id="glCanvas" width="1024" height="768"></canvas>
       <canvas id="textCanvas" width="1024" height="768"></canvas>
     </div>
+    <div style="float:left;margin-right:150px" width=500px>
+      Controls: <br>
+      r,f - increase/decrease distance to center<br>
+      w,s - rotate X axis<br>
+      a,d - rotate Y axis<br>
+      q,e - rotate Z axis<br>
+      . - switch helio/geocentric<br>
+      l - toggle lines<br>
+      space - pause simulation
+    </div>
+    <div style="margin-left:50px">
+      Cool default views<br>
+      <button id="viewButton-near">Near</button>
+      <button id="viewButton-far">Far</button>
+      <button id="viewButton-2dtop">2d from top</button>
+      <button id="viewButton-2dside">2d from side</button>
+      <button id="viewButton-galactic">Galactic</button>
+    </div>
   </body>
   <script src="./astronomy.js"></script>
   <script src="./gl-matrix.js"></script>
@@ -26,6 +45,7 @@
   <script src="./util.js"></script>
   <script src="./programs.js"></script>
   <script src="./DrawObject.js"></script>
+  <script src="./controls.js"></script>
   <script src="./gl.js"></script>
 </html>
 

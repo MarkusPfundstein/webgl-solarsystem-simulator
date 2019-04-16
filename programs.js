@@ -33,14 +33,14 @@ const loadPrograms = () => {
     attribute vec4 aVertexPosition;
     attribute vec4 aVertexColor;
 
-    uniform mat4 uModelViewMatrix;
+    uniform mat4 uModelMatrix;
+    uniform mat4 uViewMatrix;
     uniform mat4 uProjectionMatrix;
-    uniform vec4 aTranslation;
 
     varying highp vec4 vColor;
 
     void main() {
-      gl_Position = uProjectionMatrix * uModelViewMatrix * (aVertexPosition + aTranslation);
+      gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * aVertexPosition;
       vColor = aVertexColor;
     }
   `
@@ -59,57 +59,75 @@ const loadPrograms = () => {
     attribute vec4 aVertexColor;
     attribute vec3 aVertexNormal;
     
-    uniform mat4 uModelViewMatrix;
+    uniform mat4 uModelMatrix;
+    uniform mat4 uViewMatrix;
     uniform mat4 uProjectionMatrix;
-    uniform mat4 uNormalMatrix;
-    uniform vec4 aTranslation;
-    uniform vec3 uLightWorldPosition;
+    uniform vec4 uLightWorldPosition;
 
     varying highp vec4 vColor;
-    varying highp float vLightning;
-    varying vec3 vNormal;
+    varying highp vec3 vNormal;
+    varying highp vec3 vVertex;
+    varying highp vec3 vLightPos;
 
     void main() {
       // positioning of vertex
-      mat4 worldViewProjection = uProjectionMatrix * uModelViewMatrix;
-      gl_Position = worldViewProjection * (aVertexPosition + aTranslation);
+      gl_Position = uProjectionMatrix * uViewMatrix * uModelMatrix * aVertexPosition;
 
       // color/texture stuff
       vColor = aVertexColor;
 
-      // no idea why this doesnt work at all
-      vec3 transposedNormal = vec3(
-          //uNormalMatrix *  
-          (vec4(aVertexNormal, 1.0) 
-            /*+ aTranslation*/
-          )
-      );
+      mat4 matrix = uModelMatrix;
+      mat4 matrixIT;
+      matrixIT[0] = matrix[0] / dot(matrix[0],matrix[0]);
+      matrixIT[1] = matrix[1] / dot(matrix[1],matrix[1]);
+      matrixIT[2] = matrix[2] / dot(matrix[2],matrix[2]);
+      matrixIT[3] = matrix[3] / dot(matrix[3],matrix[3]);
 
-      vNormal = transposedNormal;
-
-      vec3 lightVector = normalize(uLightWorldPosition - gl_Position.xyz);
-      vLightning = dot(transposedNormal, lightVector);
+      // not sure if viewMatrix is needed
+      vVertex = vec3( uViewMatrix * uModelMatrix * aVertexPosition );
+      vNormal = vec3( uViewMatrix * matrixIT * vec4( aVertexNormal, 0.0 ) );
+      vLightPos = vec3( uViewMatrix * uLightWorldPosition );
     }
   `;
 
   const fsPlanet = `
     precision highp float;
 
+    uniform bool uApplyLight;
+
     varying highp vec4 vColor;
-    varying highp float vLightning;
-    varying vec3 vNormal;
+    varying highp vec3 vNormal;
+    varying highp vec3 vVertex;
+    varying highp vec3 vLightPos;
 
     void main() {
-      // no light
-      gl_FragColor = vec4(vColor.rgb, vColor.a);
+      if (uApplyLight) {
+        vec3 to_light;
+        vec3 vertex_normal; 
+        vec3 ambient_color = vColor.rgb * 0.8;
+        float cos_angle; 
+
+        to_light = vLightPos - vVertex;
+        to_light = normalize(to_light);
+
+        vertex_normal = normalize(vNormal);
+
+        cos_angle = dot(vertex_normal, to_light);
+        cos_angle = clamp(cos_angle, 0.0, 1.0);
+        cos_angle = pow(cos_angle, 2.0);
+
+        vec3 diffuse_color = vColor.rgb * cos_angle;
+
+        vec3 final_color = ambient_color + diffuse_color;
+        gl_FragColor = vec4 (final_color, vColor.a);
+      }
+      else {
+        gl_FragColor = vColor;
+      }
       
-      // fraction light
-      //gl_FragColor = vec4(vColor.rgb * 1.0/(1.0-vLightning), vColor.a);
-
-      //gl_FragColor = vec4(vColor.rgb * vLightning, vColor.a);
-
-//       normal debug
-  //    gl_FragColor = vec4(vNormal * 0.5 + 0.5, 1);
+      
+      //gl_FragColor = vec4(vNormal* 0.5 + 0.5, 1.0);
+      //gl_FragColor = vec4(normalize(vNormal), 1.0);
     }
   `;
 
@@ -125,10 +143,10 @@ const loadPrograms = () => {
       },
       uniformLocations: {
         projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-        modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
-        normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix;'),
+        modelMatrix: gl.getUniformLocation(shaderProgram, 'uModelMatrix'),
+        viewMatrix: gl.getUniformLocation(shaderProgram, 'uViewMatrix'),
         lightWorldPosition: gl.getUniformLocation(shaderProgram, 'uLightWorldPosition'),
-        translation: gl.getUniformLocation(shaderProgram, 'aTranslation'),
+        applyLight: gl.getUniformLocation(shaderProgram, 'uApplyLight'),
       },
     }
 
@@ -146,8 +164,8 @@ const loadPrograms = () => {
       },
       uniformLocations: {
         projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-        modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
-        translation: gl.getUniformLocation(shaderProgram, 'aTranslation'),
+        modelMatrix: gl.getUniformLocation(shaderProgram, 'uModelMatrix'),
+        viewMatrix: gl.getUniformLocation(shaderProgram, 'uViewMatrix'),
       },
     }
 
