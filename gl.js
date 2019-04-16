@@ -85,7 +85,7 @@ const webGLProgram = (scaleStuff) => {
     }
     if (worldContext.displayData.drawXYZLines) {
       for (const o of Object.values(lineObjects)) {
-        o.draw(projectionMatrix, viewMatrix, worldContext)
+        o.draw(projectionMatrix, viewMatrix, { })
       }
     }
 
@@ -137,7 +137,7 @@ const webGLProgram = (scaleStuff) => {
       return dates
     };
 
-    const simulationDays = getDates(new Date(1822, 1, 1), new Date())
+    const simulationDays = getDates(new Date(1564, 2, 15), new Date())
 
     const planetUpdateFn = (self, worldContext, deltaTime) => {
       self.translation = [
@@ -156,6 +156,7 @@ const webGLProgram = (scaleStuff) => {
     const mercury = objects.makeSphere(gl, scaleStuff ? base*2/3 : 1, colFromRGB(186, 186, 186), planetUpdateFn)
     const venus = objects.makeSphere(gl, scaleStuff ? base : 1, colFromRGB(238, 193, 116), planetUpdateFn)
     const earth = objects.makeSphere(gl, scaleStuff ? base : 1, [0.0, 1.0, 0.0, 1.0], planetUpdateFn)
+    const moon = objects.makeSphere(gl, scaleStuff ? base*0.15 : 1, [0.7, 0.7, 0.0, 0.7], planetUpdateFn)
     const mars = objects.makeSphere(gl, scaleStuff ? base*2/3 : 1, colFromRGB(236, 138, 106), planetUpdateFn)
     const jupiter = objects.makeSphere(gl, scaleStuff ? base*2 : 1, colFromRGB(233, 233, 240), planetUpdateFn)
     const saturn = objects.makeSphere(gl, scaleStuff ? base*2 :1, colFromRGB(225, 187, 103), planetUpdateFn)
@@ -171,6 +172,7 @@ const webGLProgram = (scaleStuff) => {
       Mercury: mercury,
       Venus: venus,
       Earth: earth,
+      Moon: moon,
       Mars: mars,
       Jupiter: jupiter,
       Saturn: saturn,
@@ -192,6 +194,7 @@ const webGLProgram = (scaleStuff) => {
       simulation: {
         paused: false,
         helioCentric: true,
+        speed: 25,
       },
       cameraDefaults,
     }
@@ -215,6 +218,7 @@ const webGLProgram = (scaleStuff) => {
     let currentSimulationDayIndex = 0
     const calcNewPositions = () => {
       if (worldContext.simulation.paused === true) {
+        setTimeout(calcNewPositions, worldContext.simulation.speed)
         return
       }
       const simDay = simulationDays[currentSimulationDayIndex]
@@ -245,9 +249,9 @@ const webGLProgram = (scaleStuff) => {
       if (currentSimulationDayIndex >= simulationDays.length) {
         currentSimulationDayIndex = 0
       }
+      setTimeout(calcNewPositions, worldContext.simulation.speed)
     }
 
-    setInterval(calcNewPositions, 25)
     calcNewPositions()
 
     let then = 0

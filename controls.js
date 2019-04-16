@@ -13,10 +13,10 @@ const initControls = (worldContext) => {
   })
   
   window.addEventListener('keydown', (event) => {
-    event.preventDefault();
 
     let handled = false;
     if (event.key !== undefined) {
+      console.log(event)
       switch (event.key) {
         case 'w':
           worldContext.camera.rotX += 25;
@@ -42,16 +42,24 @@ const initControls = (worldContext) => {
         case 'f':
           worldContext.camera.dist += 25;
           break;
+        case '=':
+          worldContext.simulation.speed -= 3;
+          if (worldContext.simulation.speed < 1) {
+            worldContext.simulation.speed = 1
+          }
+          break;
+        case '-':
+          worldContext.simulation.speed += 3;
+          break;
         case '.':
           worldContext.simulation.helioCentric = !worldContext.simulation.helioCentric;
           break;
         case 'l':
           worldContext.displayData.drawXYZLines = !worldContext.displayData.drawXYZLines
           break;
-        case ' ':
-          if (event.code === 'Space') {
-            worldContext.simulation.paused = !worldContext.simulation.paused
-          }
+        case 'p':
+          worldContext.simulation.paused = !worldContext.simulation.paused
+          break;
       }
     }
   }, true)
