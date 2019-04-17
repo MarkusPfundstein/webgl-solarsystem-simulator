@@ -3,6 +3,12 @@ const webGLProgram = (scaleStuff) => {
   const COORD_SCALE = 100
 
   const cameraDefaults = {
+    meteorShower: {
+      dist: 250,
+      rotX: -50,
+      rotY: 1700,
+      rotZ: 575
+    },
     veryFar: {
       dist: 5775,
       rotX: 50,
