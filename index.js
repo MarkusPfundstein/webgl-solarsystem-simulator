@@ -84,9 +84,18 @@ const webGLProgram = (scaleStuff) => {
     const viewMatrix = mat4.create()
     mat4.invert(viewMatrix, cameraMatrix)
 
-    const lightPos = Object.values(drawObjects['Sun'].state.pos).map(x => x*COORD_SCALE)
+    const lightPos = Object.values(drawObjects.mainPlanets['Sun'].state.pos).map(x => x*COORD_SCALE)
 
-    for (const o of Object.values(drawObjects)) {
+    for (const o of Object.values(drawObjects.mainPlanets)) {
+      o.draw(projectionMatrix, viewMatrix, { lightPos })
+    }
+    if (!worldContext.simulation.onlyMainPlanets) {
+      for (const o of Object.values(drawObjects.otherStuff)) {
+        o.draw(projectionMatrix, viewMatrix, { lightPos })
+      }
+    }
+    // weird bugfix-dont remove
+    for (const o of Object.values(drawObjects.whatever)) {
       o.draw(projectionMatrix, viewMatrix, { lightPos })
     }
     if (worldContext.displayData.drawXYZLines) {
@@ -106,26 +115,39 @@ const webGLProgram = (scaleStuff) => {
     textContext.fillText(`${worldContext.simulation.helioCentric ? 'Heliocentric' : 'Geocentric'}`, 20, 55)
   }
 
+  const updateDrawObject = (body, astroDay, isHelio, drawObjects, field) => {
+    const bodyName = body.Name
+    if (!drawObjects[field][bodyName]) {
+      return
+    }
+    let bodyLocation;
+    if (isHelio) {
+      bodyLocation = body.EclipticCartesianCoordinates(astroDay)
+    } else {
+      bodyLocation = body.GeocentricCoordinates(astroDay)
+    }
+
+    drawObjects[field][bodyName].setState({
+      // make y axis to correspond to z. nicer for rendering
+      pos: { x: bodyLocation.x, y: bodyLocation.z, z: bodyLocation.y }
+    })
+  }
+
   const calcNewPositions = (worldContext, drawObjects, simulationDays, currentSimulationDayIndex) => {
       if (worldContext.simulation.paused !== true) {
         const simDay = simulationDays[currentSimulationDayIndex]
 
         worldContext.displayData.currentDay = simDay
         const astroDay = Astronomy.DayValue(simDay)
+        const fields = ['mainPlanets', 'otherStuff']
         for (const body of Astronomy.Body) {
-          const bodyName = body.Name
-          if (drawObjects[bodyName]) {
-            let bodyLocation;
-            if (worldContext.simulation.helioCentric) {
-              bodyLocation = body.EclipticCartesianCoordinates(astroDay)
-            } else {
-              bodyLocation = body.GeocentricCoordinates(astroDay)
-            }
-
-            drawObjects[bodyName].setState({
-              // make y axis to correspond to z. nicer for rendering
-              pos: { x: bodyLocation.x, y: bodyLocation.z, z: bodyLocation.y }
-            })
+          for (const field of fields) {
+            updateDrawObject(
+              body, 
+              astroDay,
+              worldContext.simulation.helioCentric,
+              drawObjects,
+              field)
           }
         }
         ++currentSimulationDayIndex
@@ -166,7 +188,6 @@ const webGLProgram = (scaleStuff) => {
 
   const planetUpdateFnWithRotationSpeed = (rotSpeed) => (self, worldContext, deltaTime, context) => {
     planetUpdateFn(self, worldContext, deltaTime, context)
-    console.log(worldContext.simulation.speed)
     if (!worldContext.simulation.paused) {
       // counter clockwise if speedRelSun pos
       self.rotY -= (151-worldContext.simulation.speed)/150 * rotSpeed * deltaTime
@@ -230,7 +251,6 @@ const webGLProgram = (scaleStuff) => {
       scaleStuff ? base*8 : 1, [1.0, 1.0, 0.0, 1.0], 
       textures['Sun'], 
       planetUpdateFnWithRotationSpeed(sunSpin))
-    sun.setApplyLight(false)
     const mercury = objects.makeSphere(
       gl,
       scaleStuff ? base*2/3 : 1,
@@ -285,29 +305,100 @@ const webGLProgram = (scaleStuff) => {
       colFromRGB(68, 30, 21),
       textures['Pluto'],
       planetUpdateFnWithRotationSpeed(1))
+    // non planets
     const ceres = objects.makeSphere(
       gl, 
       scaleStuff ? base*0.5 : 1,
-      colFromRGB(238, 0, 0),
+      colFromRGB(200, 200, 200),
       null,
       planetUpdateFnWithRotationSpeed(1))
+    const pallas = objects.makeSphere(
+      gl, 
+      scaleStuff ? base*0.5 : 1,
+      colFromRGB(200, 200, 200),
+      null,
+      planetUpdateFnWithRotationSpeed(1))
+    const juno = objects.makeSphere(
+      gl, 
+      scaleStuff ? base*0.5 : 1,
+      colFromRGB(200, 200, 200),
+      null,
+      planetUpdateFnWithRotationSpeed(1))
+    const vesta = objects.makeSphere(
+      gl, 
+      scaleStuff ? base*0.5 : 1,
+      colFromRGB(200, 200, 200),
+      null,
+      planetUpdateFnWithRotationSpeed(1))
+    const ida = objects.makeSphere(
+      gl, 
+      scaleStuff ? base*0.5 : 1,
+      colFromRGB(200, 200, 200),
+      null,
+      planetUpdateFnWithRotationSpeed(1))
+    const gaspra = objects.makeSphere(
+      gl, 
+      scaleStuff ? base*0.5 : 1,
+      colFromRGB(200, 200, 200),
+      null,
+      planetUpdateFnWithRotationSpeed(1))
+    const c9p_t1 = objects.makeSphere(
+      gl, 
+      scaleStuff ? base*0.5 : 1,
+      colFromRGB(200, 200, 200),
+      null,
+      planetUpdateFnWithRotationSpeed(1))
+    const c19p_b = objects.makeSphere(
+      gl, 
+      scaleStuff ? base*0.5 : 1,
+      colFromRGB(200, 200, 200),
+      null,
+      planetUpdateFnWithRotationSpeed(1))
+    const c67p_c_g = objects.makeSphere(
+      gl, 
+      scaleStuff ? base*0.5 : 1,
+      colFromRGB(200, 200, 200),
+      null,
+      planetUpdateFnWithRotationSpeed(1))
+    const c81p_w2= objects.makeSphere(
+      gl, 
+      scaleStuff ? base*0.5 : 1,
+      colFromRGB(200, 200, 200),
+      null,
+      planetUpdateFnWithRotationSpeed(1))
+
     // for some reason, the last element to draw before other stuff must be a cube :P
     const bugFixer= objects.makeCube(gl, scaleStuff ? base : 1, colFromRGB(0, 0, 0), (self) => {self.translation = [-1000000,-1000000,-1000000]})
 
     const drawObjects = {
-      Sun: sun,
-      Mercury: mercury,
-      Venus: venus,
-      Earth: earth,
-      //Moon: moon,
-      Mars: mars,
-      Jupiter: jupiter,
-      Saturn: saturn,
-      Uranus: uranus,
-      Neptune: neptune,
-      Pluto: pluto,
-      Ceres: ceres,
-      __BUGFIXER: bugFixer,
+      mainPlanets: {
+        Sun: sun,
+        Mercury: mercury,
+        Venus: venus,
+        Earth: earth,
+        //Moon: moon,
+        Mars: mars,
+        Jupiter: jupiter,
+        Saturn: saturn,
+        Uranus: uranus,
+        Neptune: neptune,
+        Pluto: pluto,
+      },
+      otherStuff: {
+        Ceres: ceres,
+        Pallas: pallas,
+        Juno: juno,
+        Vesta: vesta,
+        Ida: ida,
+        Gaspra: gaspra,
+        '9P/T1': c9p_t1,
+        '19P/B': c19p_b,
+        '67P/C-G': c67p_c_g,
+        '81P/W2': c81p_w2,
+      },
+      whatever: {
+        __BUGFIXER: bugFixer,
+      }
     }
 
     const worldContext = { 
@@ -321,7 +412,8 @@ const webGLProgram = (scaleStuff) => {
       simulation: {
         paused: false,
         helioCentric: true,
-        speed: 15//25,
+        speed: 15,
+        onlyMainPlanets: false,
       },
       cameraDefaults,
     }
@@ -345,18 +437,25 @@ const webGLProgram = (scaleStuff) => {
     // will continously update itself
     calcNewPositions(worldContext, drawObjects, simulationDays, 0)
 
+    // sun is all light
+    sun.setApplyLight(false)
+
     let then = 0
     const render = (now) => {
+      requestAnimationFrame(render)
+
       now *= 0.001
       const deltaTime = now - then
       then = now
 
-      for (let o of Object.values(drawObjects)) {
+      for (let o of Object.values(drawObjects.mainPlanets)) {
+        o.update(worldContext, deltaTime, {drawObjects})
+      }
+      for (let o of Object.values(drawObjects.otherStuff)) {
         o.update(worldContext, deltaTime, {drawObjects})
       }
 
       drawScene(gl, textCtx, drawObjects, lineObjects, worldContext, deltaTime)
-      requestAnimationFrame(render)
     }
     initControls(worldContext)
 
