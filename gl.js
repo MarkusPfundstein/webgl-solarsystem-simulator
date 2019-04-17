@@ -3,29 +3,35 @@ const webGLProgram = (scaleStuff) => {
   const COORD_SCALE = 100
 
   const cameraDefaults = {
+    veryFar: {
+      dist: 5775,
+      rotX: 50,
+      rotY: 50,
+      rotZ: 625
+    },
     far: {
       dist: 1800,
       rotY: 50,
       rotX: 50,
-      rotZ: 0,
+      rotZ: 625,
     },
     near: {
       dist: 500,
       rotY: 50,
       rotX: 50,
-      rotZ: 0,
+      rotZ: 625,
     },
     '2dtop': {
       dist: 675,
-      rotX: -190, // 175-190
+      rotX: 190, // 175-190
       rotY: 0,
       rotZ: 0 
     },
     '2dside': {
       dist: 675,
-      rotX: 0,
-      rotY: 180,
-      rotZ: 0 
+      rotX: -600,
+      rotY: 355,
+      rotZ: 0,
     },
     'galactic': {
       dist: 925,
@@ -158,6 +164,15 @@ const webGLProgram = (scaleStuff) => {
     ].map(coord => coord*(scaleStuff ? COORD_SCALE : 25))//coord * 25)
   }
 
+  const planetUpdateFnWithRotationSpeed = (rotSpeed) => (self, worldContext, deltaTime, context) => {
+    planetUpdateFn(self, worldContext, deltaTime, context)
+    console.log(worldContext.simulation.speed)
+    if (!worldContext.simulation.paused) {
+      // counter clockwise if speedRelSun pos
+      self.rotY -= (151-worldContext.simulation.speed)/150 * rotSpeed * deltaTime
+    }
+  }
+
   const loadAllTextures = (gl) => {
     const texs = {
       Sun: './tex/sun.jpg',
@@ -206,21 +221,76 @@ const webGLProgram = (scaleStuff) => {
 
     const colFromRGB = (r, g, b) => ([r/256, g/256, b/256, 1.0])
 
+    const earthSpin = 1.0
+    const sunSpin = earthSpin/24
+
     const base = scaleStuff ? 3 : 1
-    const sun = objects.makeSphere(gl, scaleStuff ? base*8 : 1, [1.0, 1.0, 0.0, 1.0], textures['Sun'], planetUpdateFn)
+    const sun = objects.makeSphere(
+      gl, 
+      scaleStuff ? base*8 : 1, [1.0, 1.0, 0.0, 1.0], 
+      textures['Sun'], 
+      planetUpdateFnWithRotationSpeed(sunSpin))
     sun.setApplyLight(false)
-    const mercury = objects.makeSphere(gl, scaleStuff ? base*2/3 : 1, colFromRGB(186, 186, 186), textures['Mercury'], planetUpdateFn)
-    const venus = objects.makeSphere(gl, scaleStuff ? base : 1, colFromRGB(238, 193, 116), textures['Venus'], planetUpdateFn)
-    const earth = objects.makeSphere(gl, scaleStuff ? base: 1, [0.0, 1.0, 0.0, 1.0], textures['Earth'], planetUpdateFn)
-    // TO-DO: moon not working in helioCentric
-    //const moon = objects.makeSphere(gl, scaleStuff ? base/5 : 1, [0.7, 0.7, 0.0, 1.0], null, planetUpdateFn)
-    const mars = objects.makeSphere(gl, scaleStuff ? base*2/3 : 1, colFromRGB(236, 138, 106), textures['Mars'], planetUpdateFn)
-    const jupiter = objects.makeSphere(gl, scaleStuff ? base*2 : 1, colFromRGB(233, 233, 240), textures['Jupiter'], planetUpdateFn)
-    const saturn = objects.makeSphere(gl, scaleStuff ? base*2 :1, colFromRGB(225, 187, 103), textures['Saturn'], planetUpdateFn)
-    const uranus = objects.makeSphere(gl, scaleStuff ? base*2 :1, colFromRGB(208, 238, 241), textures['Uranus'], planetUpdateFn)
-    const neptune = objects.makeSphere(gl, scaleStuff ? base*1.5 :1, colFromRGB(77, 113, 246), textures['Neptune'], planetUpdateFn)
-    const pluto = objects.makeSphere(gl, scaleStuff ? base*1.5 : 1, colFromRGB(68, 30, 21), textures['Pluto'], planetUpdateFn)
-    const ceres = objects.makeSphere(gl, scaleStuff ? base*0.5 : 1, colFromRGB(238, 0, 0), null, planetUpdateFn)
+    const mercury = objects.makeSphere(
+      gl,
+      scaleStuff ? base*2/3 : 1,
+      colFromRGB(186, 186, 186),
+      textures['Mercury'],
+      planetUpdateFnWithRotationSpeed(1))
+    const venus = objects.makeSphere(
+      gl,
+      scaleStuff ? base : 1,
+      colFromRGB(238, 193, 116),
+      textures['Venus'],
+      planetUpdateFnWithRotationSpeed(-3))
+    const earth = objects.makeSphere(
+      gl,
+      scaleStuff ? base: 1,
+      [0.0, 1.0, 0.0, 1.0],
+      textures['Earth'],
+      planetUpdateFnWithRotationSpeed(earthSpin))
+    const mars = objects.makeSphere(
+      gl,
+      scaleStuff ? base*2/3 : 1,
+      colFromRGB(236, 138, 106),
+      textures['Mars'], 
+      planetUpdateFnWithRotationSpeed(1))
+    const jupiter = objects.makeSphere(
+      gl,
+      scaleStuff ? base*2 : 1,
+      colFromRGB(233, 233, 240),
+      textures['Jupiter'],
+      planetUpdateFnWithRotationSpeed(1))
+    const saturn = objects.makeSphere(
+      gl,
+      scaleStuff ? base*2 :1,
+      colFromRGB(225, 187, 103),
+      textures['Saturn'],
+      planetUpdateFnWithRotationSpeed(1))
+    const uranus = objects.makeSphere(
+      gl,
+      scaleStuff ? base*2 :1,
+      colFromRGB(208, 238, 241),
+      textures['Uranus'],
+      planetUpdateFnWithRotationSpeed(-1))
+    const neptune = objects.makeSphere(
+      gl,
+      scaleStuff ? base*3 :1,
+      colFromRGB(77, 113, 246),
+      textures['Neptune'],
+      planetUpdateFnWithRotationSpeed(1))
+    const pluto = objects.makeSphere(
+      gl,
+      scaleStuff ? base*4 : 1,
+      colFromRGB(68, 30, 21),
+      textures['Pluto'],
+      planetUpdateFnWithRotationSpeed(1))
+    const ceres = objects.makeSphere(
+      gl, 
+      scaleStuff ? base*0.5 : 1,
+      colFromRGB(238, 0, 0),
+      null,
+      planetUpdateFnWithRotationSpeed(1))
     // for some reason, the last element to draw before other stuff must be a cube :P
     const bugFixer= objects.makeCube(gl, scaleStuff ? base : 1, colFromRGB(0, 0, 0), (self) => {self.translation = [-1000000,-1000000,-1000000]})
 

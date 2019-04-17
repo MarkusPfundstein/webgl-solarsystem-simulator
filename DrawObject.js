@@ -13,6 +13,9 @@ class DrawObject {
     }
     this.programInfo = programInfo
     this.translation = [0.0, 0.0, 0.0, 0.0]
+    this.rotX = 0.0;
+    this.rotY = 0.0;
+    this.rotZ = 0.0;
     this.updateFn = () => {}
     this.state = {}
     this.texture = drawInfo.texture || null
@@ -109,6 +112,11 @@ class DrawObject {
       modelMatrix,
       modelMatrix,
       this.translation
+    )
+    mat4.rotateY(
+      modelMatrix,
+      modelMatrix,
+      this.rotY
     )
 
     this.gl.uniformMatrix4fv(

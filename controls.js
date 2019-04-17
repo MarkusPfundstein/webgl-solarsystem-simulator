@@ -1,8 +1,6 @@
 const initControls = (worldContext) => {
 
-  const viewButtons = [
-    'near', 'far', '2dtop', '2dside', 'galactic'
-  ]
+  const viewButtons = Object.keys(worldContext.cameraDefaults)
 
   viewButtons.forEach(tag => {
     document.getElementById(`viewButton-${tag}`).addEventListener('click', event => {
@@ -50,6 +48,9 @@ const initControls = (worldContext) => {
           break;
         case '-':
           worldContext.simulation.speed += 3;
+          if (worldContext.simulation.speed > 150) {
+            worldContext.simulation.speed = 150
+          }
           break;
         case '.':
           worldContext.simulation.helioCentric = !worldContext.simulation.helioCentric;
