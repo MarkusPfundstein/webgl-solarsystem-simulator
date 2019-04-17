@@ -7,7 +7,30 @@ const initControls = (worldContext) => {
       worldContext.camera = {
         ...worldContext.cameraDefaults[tag],
       }
+      event.preventDefault()
     })
+  })
+
+  document.getElementById('simuDayButton').addEventListener('click', event => {
+    const from = document.getElementById('simuFromField').value
+    const to = document.getElementById('simuToField').value
+
+    let fromDate
+    let toDate
+    if (from) {
+      fromDate = parseInt(from, 10)
+    }
+    if (to != '') {
+      toDate = parseInt(to, 10)
+    }
+    if (fromDate) {
+      const simulationDays = util.getDates(
+        new Date(fromDate, 1, 1),
+        toDate ? new Date(toDate, 1, 1) : new Date()
+      )
+      worldContext.simulation.simulationDays = simulationDays
+      worldContext.simulation.currentSimulationDayIndex = 0
+    }
   })
   
   window.addEventListener('keydown', (event) => {

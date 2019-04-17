@@ -116,7 +116,7 @@ class DrawObject {
     mat4.rotateY(
       modelMatrix,
       modelMatrix,
-      this.rotY
+      this.rotY * Math.PI/180
     )
 
     this.gl.uniformMatrix4fv(

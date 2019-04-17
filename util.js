@@ -59,10 +59,27 @@ const makeUtil = () => {
     return promise
   }
 
+  const getDates = (startDate, endDate) => {
+    const dates = []
+    const addDays = (currentDate, days) => {
+      const date = new Date(currentDate.valueOf())
+      date.setDate(date.getDate() + days)
+      return date
+    };
+
+    let currentDate = startDate
+    while (currentDate <= endDate) {
+      dates.push(currentDate)
+      currentDate = addDays(currentDate, 1)
+    }
+    return dates
+  }
+
   return {
     makeGLArrayBuffer,
     makeGLElementArrayBuffer,
     loadTexture,
+    getDates,
   }
 }
 

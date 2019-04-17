@@ -133,9 +133,9 @@ const webGLProgram = (scaleStuff) => {
     })
   }
 
-  const calcNewPositions = (worldContext, drawObjects, simulationDays, currentSimulationDayIndex) => {
+  const calcNewPositions = (worldContext, drawObjects) => {
       if (worldContext.simulation.paused !== true) {
-        const simDay = simulationDays[currentSimulationDayIndex]
+        const simDay = worldContext.simulation.simulationDays[worldContext.simulation.currentSimulationDayIndex]
 
         worldContext.displayData.currentDay = simDay
         const astroDay = Astronomy.DayValue(simDay)
@@ -150,32 +150,16 @@ const webGLProgram = (scaleStuff) => {
               field)
           }
         }
-        ++currentSimulationDayIndex
-        if (currentSimulationDayIndex >= simulationDays.length) {
-          currentSimulationDayIndex = 0
+        ++worldContext.simulation.currentSimulationDayIndex
+        if (worldContext.simulation.currentSimulationDayIndex >= worldContext.simulation.simulationDays.length) {
+          worldContext.simulation.currentSimulationDayIndex = 0
         }
       }
       setTimeout(
-        () => calcNewPositions(worldContext, drawObjects, simulationDays, currentSimulationDayIndex),
+        () => calcNewPositions(worldContext, drawObjects),
         worldContext.simulation.speed
       )
     }
-
-  const getDates = (startDate, endDate) => {
-    const dates = []
-    const addDays = (currentDate, days) => {
-      const date = new Date(currentDate.valueOf())
-      date.setDate(date.getDate() + days)
-      return date
-    };
-
-    let currentDate = startDate
-    while (currentDate <= endDate) {
-      dates.push(currentDate)
-      currentDate = addDays(currentDate, 1)
-    }
-    return dates
-  };
 
   const planetUpdateFn = (self, worldContext, deltaTime, context) => {
     self.translation = [
@@ -190,7 +174,11 @@ const webGLProgram = (scaleStuff) => {
     planetUpdateFn(self, worldContext, deltaTime, context)
     if (!worldContext.simulation.paused) {
       // counter clockwise if speedRelSun pos
-      self.rotY -= (151-worldContext.simulation.speed)/150 * rotSpeed * deltaTime
+      // Calculations still must be better and should also take speed into account
+      const wSpeed = (151-worldContext.simulation.speed)
+      const velRotY = (rotSpeed * wSpeed/150) * deltaTime
+      self.rotY -= velRotY
+      // should probably also be clamped
     }
   }
 
@@ -238,12 +226,11 @@ const webGLProgram = (scaleStuff) => {
     const textCanvas = document.querySelector('#textCanvas')
     const textCtx = textCanvas.getContext('2d')
 
-    const simulationDays = getDates(new Date(1564, 2, 15), new Date())
-
     const colFromRGB = (r, g, b) => ([r/256, g/256, b/256, 1.0])
 
-    const earthSpin = 1.0
-    const sunSpin = earthSpin/24
+    // TO-DO: precisely calculate this
+    const earthSpin =  0.05*1000.0*45
+    const sunSpin = earthSpin/27
 
     const base = scaleStuff ? 3 : 1
     const sun = objects.makeSphere(
@@ -256,13 +243,13 @@ const webGLProgram = (scaleStuff) => {
       scaleStuff ? base*2/3 : 1,
       colFromRGB(186, 186, 186),
       textures['Mercury'],
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const venus = objects.makeSphere(
       gl,
       scaleStuff ? base : 1,
       colFromRGB(238, 193, 116),
       textures['Venus'],
-      planetUpdateFnWithRotationSpeed(-3))
+      planetUpdateFnWithRotationSpeed(-earthSpin))
     const earth = objects.makeSphere(
       gl,
       scaleStuff ? base: 1,
@@ -274,19 +261,19 @@ const webGLProgram = (scaleStuff) => {
       scaleStuff ? base*2/3 : 1,
       colFromRGB(236, 138, 106),
       textures['Mars'], 
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const jupiter = objects.makeSphere(
       gl,
       scaleStuff ? base*2 : 1,
       colFromRGB(233, 233, 240),
       textures['Jupiter'],
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const saturn = objects.makeSphere(
       gl,
       scaleStuff ? base*2 :1,
       colFromRGB(225, 187, 103),
       textures['Saturn'],
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const uranus = objects.makeSphere(
       gl,
       scaleStuff ? base*2 :1,
@@ -298,74 +285,74 @@ const webGLProgram = (scaleStuff) => {
       scaleStuff ? base*3 :1,
       colFromRGB(77, 113, 246),
       textures['Neptune'],
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const pluto = objects.makeSphere(
       gl,
       scaleStuff ? base*4 : 1,
       colFromRGB(68, 30, 21),
       textures['Pluto'],
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     // non planets
     const ceres = objects.makeSphere(
       gl, 
       scaleStuff ? base*0.5 : 1,
       colFromRGB(200, 200, 200),
       null,
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const pallas = objects.makeSphere(
       gl, 
       scaleStuff ? base*0.5 : 1,
       colFromRGB(200, 200, 200),
       null,
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const juno = objects.makeSphere(
       gl, 
       scaleStuff ? base*0.5 : 1,
       colFromRGB(200, 200, 200),
       null,
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const vesta = objects.makeSphere(
       gl, 
       scaleStuff ? base*0.5 : 1,
       colFromRGB(200, 200, 200),
       null,
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const ida = objects.makeSphere(
       gl, 
       scaleStuff ? base*0.5 : 1,
       colFromRGB(200, 200, 200),
       null,
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const gaspra = objects.makeSphere(
       gl, 
       scaleStuff ? base*0.5 : 1,
       colFromRGB(200, 200, 200),
       null,
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const c9p_t1 = objects.makeSphere(
       gl, 
       scaleStuff ? base*0.5 : 1,
       colFromRGB(200, 200, 200),
       null,
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const c19p_b = objects.makeSphere(
       gl, 
       scaleStuff ? base*0.5 : 1,
       colFromRGB(200, 200, 200),
       null,
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const c67p_c_g = objects.makeSphere(
       gl, 
       scaleStuff ? base*0.5 : 1,
       colFromRGB(200, 200, 200),
       null,
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
     const c81p_w2= objects.makeSphere(
       gl, 
       scaleStuff ? base*0.5 : 1,
       colFromRGB(200, 200, 200),
       null,
-      planetUpdateFnWithRotationSpeed(1))
+      planetUpdateFnWithRotationSpeed(earthSpin))
 
     // for some reason, the last element to draw before other stuff must be a cube :P
     const bugFixer= objects.makeCube(gl, scaleStuff ? base : 1, colFromRGB(0, 0, 0), (self) => {self.translation = [-1000000,-1000000,-1000000]})
@@ -401,6 +388,9 @@ const webGLProgram = (scaleStuff) => {
       }
     }
 
+    // start at Galileo's bday
+    const simulationDays = util.getDates(new Date(1564, 2, 15), new Date())
+
     const worldContext = { 
       camera: {
         ...cameraDefaults.near
@@ -414,6 +404,8 @@ const webGLProgram = (scaleStuff) => {
         helioCentric: true,
         speed: 15,
         onlyMainPlanets: false,
+        simulationDays,
+        currentSimulationDayIndex: 0
       },
       cameraDefaults,
     }
@@ -435,7 +427,7 @@ const webGLProgram = (scaleStuff) => {
     }
 
     // will continously update itself
-    calcNewPositions(worldContext, drawObjects, simulationDays, 0)
+    calcNewPositions(worldContext, drawObjects)
 
     // sun is all light
     sun.setApplyLight(false)
