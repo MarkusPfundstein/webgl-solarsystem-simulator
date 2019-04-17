@@ -33,6 +33,12 @@ const webGLProgram = (scaleStuff) => {
       rotY: 355,
       rotZ: 0,
     },
+    '2dweird': {
+      dist: 675,
+      rotX: -600,
+      rotY: -1420,
+      rotZ: 300
+    },
     'galactic': {
       dist: 925,
       rotX: -90,
@@ -397,7 +403,7 @@ const webGLProgram = (scaleStuff) => {
       },
       displayData: {
         currentDay: null,
-        drawXYZLines: true,
+        drawXYZLines: false,
       },
       simulation: {
         paused: false,
