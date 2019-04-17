@@ -90,16 +90,6 @@ const webGLProgram = (scaleStuff) => {
     }
 
     textContext.save()
-
-    for (const [name, o] of Object.entries(drawObjects)) {
-      /*
-      textContext.translate(o.translation[0], o.translation[1])
-      textContext.fillStyle = '#FF0000'
-      textContext.font = '10px serif'
-      textContext.fillText('TEST', 0, 0)*/
-    }
-
-
     textContext.translate(0, 0)
     textContext.fillStyle = '#FF0000'
     textContext.font = '18px serif'
@@ -110,7 +100,90 @@ const webGLProgram = (scaleStuff) => {
     textContext.fillText(`${worldContext.simulation.helioCentric ? 'Heliocentric' : 'Geocentric'}`, 20, 55)
   }
 
-  const run = () => {
+  const calcNewPositions = (worldContext, drawObjects, simulationDays, currentSimulationDayIndex) => {
+      if (worldContext.simulation.paused !== true) {
+        const simDay = simulationDays[currentSimulationDayIndex]
+
+        worldContext.displayData.currentDay = simDay
+        const astroDay = Astronomy.DayValue(simDay)
+        for (const body of Astronomy.Body) {
+          const bodyName = body.Name
+          if (drawObjects[bodyName]) {
+            let bodyLocation;
+            if (worldContext.simulation.helioCentric) {
+              bodyLocation = body.EclipticCartesianCoordinates(astroDay)
+            } else {
+              bodyLocation = body.GeocentricCoordinates(astroDay)
+            }
+
+            drawObjects[bodyName].setState({
+              // make y axis to correspond to z. nicer for rendering
+              pos: { x: bodyLocation.x, y: bodyLocation.z, z: bodyLocation.y }
+            })
+          }
+        }
+        ++currentSimulationDayIndex
+        if (currentSimulationDayIndex >= simulationDays.length) {
+          currentSimulationDayIndex = 0
+        }
+      }
+      setTimeout(
+        () => calcNewPositions(worldContext, drawObjects, simulationDays, currentSimulationDayIndex),
+        worldContext.simulation.speed
+      )
+    }
+
+  const getDates = (startDate, endDate) => {
+    const dates = []
+    const addDays = (currentDate, days) => {
+      const date = new Date(currentDate.valueOf())
+      date.setDate(date.getDate() + days)
+      return date
+    };
+
+    let currentDate = startDate
+    while (currentDate <= endDate) {
+      dates.push(currentDate)
+      currentDate = addDays(currentDate, 1)
+    }
+    return dates
+  };
+
+  const planetUpdateFn = (self, worldContext, deltaTime, context) => {
+    self.translation = [
+      self.state.pos.x,
+      self.state.pos.y,
+      self.state.pos.z,
+      0.0
+    ].map(coord => coord*(scaleStuff ? COORD_SCALE : 25))//coord * 25)
+  }
+
+  const loadAllTextures = (gl) => {
+    const texs = {
+      Sun: './tex/sun.jpg',
+      Mercury: './tex/mercury.jpg',
+      Venus: './tex/venus.jpg',
+      Earth: './tex/earth.jpg',
+      Mars: './tex/mars.jpg',
+      Jupiter: './tex/jupiter.jpg',
+      Saturn: './tex/saturn.jpg',
+      Uranus: './tex/uranus.jpg',
+      Neptune: './tex/neptune.jpg',
+      Pluto: './tex/pluto.jpg'
+    }
+    const loadedPs = Object.entries(texs).map(([key, value]) => {
+      return util.loadTexture(gl, key, value)
+    })
+    return Promise.all(loadedPs).then(allTexs => {
+      const texMap = {}
+      for (let [key, value] of allTexs) {
+        texMap[key] = value
+      }
+      return texMap
+    })
+  }
+
+  const run = async () => {
     const canvas = document.querySelector('#glCanvas')
 
     const gl = canvas.getContext('webgl')
@@ -119,52 +192,35 @@ const webGLProgram = (scaleStuff) => {
       throw new Error('webgl not supported')
     }
 
+    let textures = null
+    try {
+      textures = await loadAllTextures(gl)
+    } catch (e) {
+      alert(`Error loading texture for ${e[0]}`)
+    }
+
     const textCanvas = document.querySelector('#textCanvas')
     const textCtx = textCanvas.getContext('2d')
 
-    const getDates = (startDate, endDate) => {
-      const dates = []
-      const addDays = (currentDate, days) => {
-        const date = new Date(currentDate.valueOf())
-        date.setDate(date.getDate() + days)
-        return date
-      };
-
-      let currentDate = startDate
-      while (currentDate <= endDate) {
-        dates.push(currentDate)
-        currentDate = addDays(currentDate, 1)
-      }
-      return dates
-    };
-
     const simulationDays = getDates(new Date(1564, 2, 15), new Date())
-
-    const planetUpdateFn = (self, worldContext, deltaTime) => {
-      self.translation = [
-        self.state.pos.x,
-        self.state.pos.y,
-        self.state.pos.z,
-        0.0
-      ].map(coord => coord*(scaleStuff ? COORD_SCALE : 25))//coord * 25)
-    }
 
     const colFromRGB = (r, g, b) => ([r/256, g/256, b/256, 1.0])
 
     const base = scaleStuff ? 3 : 1
-    const sun = objects.makeSphere(gl, scaleStuff ? base*8 : 1, [1.0, 1.0, 0.0, 1.0], planetUpdateFn)
+    const sun = objects.makeSphere(gl, scaleStuff ? base*8 : 1, [1.0, 1.0, 0.0, 1.0], textures['Sun'], planetUpdateFn)
     sun.setApplyLight(false)
-    const mercury = objects.makeSphere(gl, scaleStuff ? base*2/3 : 1, colFromRGB(186, 186, 186), planetUpdateFn)
-    const venus = objects.makeSphere(gl, scaleStuff ? base : 1, colFromRGB(238, 193, 116), planetUpdateFn)
-    const earth = objects.makeSphere(gl, scaleStuff ? base : 1, [0.0, 1.0, 0.0, 1.0], planetUpdateFn)
-    const moon = objects.makeSphere(gl, scaleStuff ? base*0.15 : 1, [0.7, 0.7, 0.0, 0.7], planetUpdateFn)
-    const mars = objects.makeSphere(gl, scaleStuff ? base*2/3 : 1, colFromRGB(236, 138, 106), planetUpdateFn)
-    const jupiter = objects.makeSphere(gl, scaleStuff ? base*2 : 1, colFromRGB(233, 233, 240), planetUpdateFn)
-    const saturn = objects.makeSphere(gl, scaleStuff ? base*2 :1, colFromRGB(225, 187, 103), planetUpdateFn)
-    const uranus = objects.makeSphere(gl, scaleStuff ? base*2 :1, colFromRGB(208, 238, 241), planetUpdateFn)
-    const neptune = objects.makeSphere(gl, scaleStuff ? base*1.5 :1, colFromRGB(77, 113, 246), planetUpdateFn)
-    const pluto = objects.makeSphere(gl, scaleStuff ? base*1.5 : 1, colFromRGB(68, 30, 21), planetUpdateFn)
-    const ceres = objects.makeSphere(gl, scaleStuff ? base*0.5 : 1, colFromRGB(238, 0, 0), planetUpdateFn)
+    const mercury = objects.makeSphere(gl, scaleStuff ? base*2/3 : 1, colFromRGB(186, 186, 186), textures['Mercury'], planetUpdateFn)
+    const venus = objects.makeSphere(gl, scaleStuff ? base : 1, colFromRGB(238, 193, 116), textures['Venus'], planetUpdateFn)
+    const earth = objects.makeSphere(gl, scaleStuff ? base: 1, [0.0, 1.0, 0.0, 1.0], textures['Earth'], planetUpdateFn)
+    // TO-DO: moon not working in helioCentric
+    //const moon = objects.makeSphere(gl, scaleStuff ? base/5 : 1, [0.7, 0.7, 0.0, 1.0], null, planetUpdateFn)
+    const mars = objects.makeSphere(gl, scaleStuff ? base*2/3 : 1, colFromRGB(236, 138, 106), textures['Mars'], planetUpdateFn)
+    const jupiter = objects.makeSphere(gl, scaleStuff ? base*2 : 1, colFromRGB(233, 233, 240), textures['Jupiter'], planetUpdateFn)
+    const saturn = objects.makeSphere(gl, scaleStuff ? base*2 :1, colFromRGB(225, 187, 103), textures['Saturn'], planetUpdateFn)
+    const uranus = objects.makeSphere(gl, scaleStuff ? base*2 :1, colFromRGB(208, 238, 241), textures['Uranus'], planetUpdateFn)
+    const neptune = objects.makeSphere(gl, scaleStuff ? base*1.5 :1, colFromRGB(77, 113, 246), textures['Neptune'], planetUpdateFn)
+    const pluto = objects.makeSphere(gl, scaleStuff ? base*1.5 : 1, colFromRGB(68, 30, 21), textures['Pluto'], planetUpdateFn)
+    const ceres = objects.makeSphere(gl, scaleStuff ? base*0.5 : 1, colFromRGB(238, 0, 0), null, planetUpdateFn)
     // for some reason, the last element to draw before other stuff must be a cube :P
     const bugFixer= objects.makeCube(gl, scaleStuff ? base : 1, colFromRGB(0, 0, 0), (self) => {self.translation = [-1000000,-1000000,-1000000]})
 
@@ -173,7 +229,7 @@ const webGLProgram = (scaleStuff) => {
       Mercury: mercury,
       Venus: venus,
       Earth: earth,
-      Moon: moon,
+      //Moon: moon,
       Mars: mars,
       Jupiter: jupiter,
       Saturn: saturn,
@@ -216,44 +272,8 @@ const webGLProgram = (scaleStuff) => {
       zLineNeg,
     }
 
-    let currentSimulationDayIndex = 0
-    const calcNewPositions = () => {
-      if (worldContext.simulation.paused === true) {
-        setTimeout(calcNewPositions, worldContext.simulation.speed)
-        return
-      }
-      const simDay = simulationDays[currentSimulationDayIndex]
-
-      worldContext.displayData.currentDay = simDay
-      const astroDay = Astronomy.DayValue(simDay)
-      for (const body of Astronomy.Body) {
-        const bodyName = body.Name
-        if (drawObjects[bodyName]) {
-          let bodyLocation;
-          if (worldContext.simulation.helioCentric) {
-            bodyLocation = body.EclipticCartesianCoordinates(astroDay)
-          } else {
-            bodyLocation = body.GeocentricCoordinates(astroDay)
-          }
-
-          drawObjects[bodyName].setState({
-            // openGL transform
-            pos: {
-              x: bodyLocation.x,
-              y: bodyLocation.z,
-              z: bodyLocation.y
-            }
-          })
-        }
-      }
-      ++currentSimulationDayIndex
-      if (currentSimulationDayIndex >= simulationDays.length) {
-        currentSimulationDayIndex = 0
-      }
-      setTimeout(calcNewPositions, worldContext.simulation.speed)
-    }
-
-    calcNewPositions()
+    // will continously update itself
+    calcNewPositions(worldContext, drawObjects, simulationDays, 0)
 
     let then = 0
     const render = (now) => {
@@ -262,7 +282,7 @@ const webGLProgram = (scaleStuff) => {
       then = now
 
       for (let o of Object.values(drawObjects)) {
-        o.update(worldContext, deltaTime)
+        o.update(worldContext, deltaTime, {drawObjects})
       }
 
       drawScene(gl, textCtx, drawObjects, lineObjects, worldContext, deltaTime)

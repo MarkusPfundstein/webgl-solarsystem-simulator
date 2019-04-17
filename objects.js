@@ -1,6 +1,6 @@
 const makeObjects = () => {
 
-  const makeSphere = (gl, scale, color, updateFn) => {
+  const makeSphere = (gl, scale, color, texture, updateFn) => {
     const latitudeBands = 50;
     const longitudeBands = 50;
     const radius = 2;
@@ -53,9 +53,11 @@ const makeObjects = () => {
 
     const drawInfo = {
       positions: vertexPositionData,
+      textureCoords: textureCoordData,
       normals: normalData,
       indices: indexData,
       colors: colorData,
+      texture,
     }
 
     const programInfo = programs.loadPlanetProgramInfo(gl)

@@ -58,6 +58,7 @@ const loadPrograms = () => {
     attribute vec4 aVertexPosition;
     attribute vec4 aVertexColor;
     attribute vec3 aVertexNormal;
+    attribute vec2 aTextureUV;
     
     uniform mat4 uModelMatrix;
     uniform mat4 uViewMatrix;
@@ -68,6 +69,7 @@ const loadPrograms = () => {
     varying highp vec3 vNormal;
     varying highp vec3 vVertex;
     varying highp vec3 vLightPos;
+    varying highp vec2 vTextureUV;
 
     void main() {
       // positioning of vertex
@@ -87,6 +89,8 @@ const loadPrograms = () => {
       vVertex = vec3( uViewMatrix * uModelMatrix * aVertexPosition );
       vNormal = vec3( uViewMatrix * matrixIT * vec4( aVertexNormal, 0.0 ) );
       vLightPos = vec3( uViewMatrix * uLightWorldPosition );
+
+      vTextureUV = aTextureUV;
     }
   `;
 
@@ -94,17 +98,26 @@ const loadPrograms = () => {
     precision highp float;
 
     uniform bool uApplyLight;
+    uniform bool uUseTexture;
+    uniform sampler2D uTexture;
 
     varying highp vec4 vColor;
     varying highp vec3 vNormal;
     varying highp vec3 vVertex;
     varying highp vec3 vLightPos;
+    varying highp vec2 vTextureUV;
 
     void main() {
+      vec4 fragColor;
+      if (uUseTexture) {
+        fragColor = texture2D(uTexture, vTextureUV);
+      } else {
+        fragColor = vColor;
+      }
       if (uApplyLight) {
         vec3 to_light;
         vec3 vertex_normal; 
-        vec3 ambient_color = vColor.rgb * 0.8;
+        vec3 ambient_color = fragColor.rgb * 0.8;
         float cos_angle; 
 
         to_light = vLightPos - vVertex;
@@ -116,13 +129,13 @@ const loadPrograms = () => {
         cos_angle = clamp(cos_angle, 0.0, 1.0);
         cos_angle = pow(cos_angle, 2.0);
 
-        vec3 diffuse_color = vColor.rgb * cos_angle;
+        vec3 diffuse_color = fragColor.rgb * cos_angle;
 
         vec3 final_color = ambient_color + diffuse_color;
-        gl_FragColor = vec4 (final_color, vColor.a);
+        gl_FragColor = vec4 (final_color, fragColor.a);
       }
       else {
-        gl_FragColor = vColor;
+        gl_FragColor = fragColor;
       }
       
       
@@ -139,7 +152,8 @@ const loadPrograms = () => {
       attribLocations: {
         vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
         vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor'),
-        vertexNormal: gl.getAttribLocation(shaderProgram, 'aVertexNormal')
+        vertexNormal: gl.getAttribLocation(shaderProgram, 'aVertexNormal'),
+        textureUV: gl.getAttribLocation(shaderProgram, 'aTextureUV')
       },
       uniformLocations: {
         projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
@@ -147,6 +161,8 @@ const loadPrograms = () => {
         viewMatrix: gl.getUniformLocation(shaderProgram, 'uViewMatrix'),
         lightWorldPosition: gl.getUniformLocation(shaderProgram, 'uLightWorldPosition'),
         applyLight: gl.getUniformLocation(shaderProgram, 'uApplyLight'),
+        useTexture: gl.getUniformLocation(shaderProgram, 'uUseTexture'),
+        texture: gl.getUniformLocation(shaderProgram, 'uTexture')
       },
     }
 

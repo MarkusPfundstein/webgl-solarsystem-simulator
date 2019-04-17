@@ -6,6 +6,7 @@ class DrawObject {
     this.indexBuffer = drawInfo.indices && util.makeGLElementArrayBuffer(gl, drawInfo.indices)
     this.normalBuffer = drawInfo.normals && util.makeGLArrayBuffer(gl, drawInfo.normals)
     this.colorBuffer = drawInfo.colors && util.makeGLArrayBuffer(gl, drawInfo.colors)
+    this.textureBuffer = drawInfo.textureCoords && util.makeGLArrayBuffer(gl, drawInfo.textureCoords)
     this.drawInfo = {
       nIndices: drawInfo.indices ? drawInfo.indices.length : drawInfo.nVertices,
       applyLight: drawInfo.applyLight || true,
@@ -14,6 +15,7 @@ class DrawObject {
     this.translation = [0.0, 0.0, 0.0, 0.0]
     this.updateFn = () => {}
     this.state = {}
+    this.texture = drawInfo.texture || null
   }
 
   setApplyLight(apply) {
@@ -35,8 +37,8 @@ class DrawObject {
     }
   }
 
-  update(worldContext, deltaTime) {
-    this.updateFn(this, worldContext, deltaTime)
+  update(worldContext, deltaTime, context) {
+    this.updateFn(this, worldContext, deltaTime, context)
   }
 
   draw(projectionMatrix, viewMatrix, context) {
@@ -63,6 +65,20 @@ class DrawObject {
         0
       )
       this.gl.enableVertexAttribArray(this.programInfo.attribLocations.vertexNormal)
+    }
+
+    if (this.textureBuffer) {
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.textureBuffer)
+      
+      this.gl.vertexAttribPointer(
+        this.programInfo.attribLocations.textureUV,
+        2,
+        this.gl.FLOAT,
+        false,
+        0,
+        0
+      )
+      this.gl.enableVertexAttribArray(this.programInfo.attribLocations.textureUV)
     }
 
     if (this.colorBuffer) {
@@ -111,6 +127,20 @@ class DrawObject {
       this.programInfo.uniformLocations.applyLight,
       this.drawInfo.applyLight
     )
+
+    this.gl.uniform1i(
+      this.programInfo.uniformLocations.useTexture,
+      this.texture != null 
+    )
+
+    if (this.texture) {
+      this.gl.activeTexture(this.gl.TEXTURE0)
+      this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture)
+      this.gl.uniform1i(
+        this.programInfo.uniformLocations.texture,
+        0
+      )
+    }
 
     this.gl.uniform4fv(
       this.programInfo.uniformLocations.lightWorldPosition,
