@@ -29,6 +29,32 @@ const loadPrograms = () => {
     return shaderProgram
   }
 
+  const vsSkyBox = `
+    attribute vec4 aVertexPosition;
+    
+    varying vec4 vVertexPosition;
+
+    void main() {
+      vVertexPosition = aVertexPosition;
+      gl_Position = aVertexPosition;
+      gl_Position.z = 1.0;
+    }
+  `
+
+  const fsSkyBox = `
+    precision highp float;
+
+    uniform samplerCube uSkyBox;
+    uniform mat4 uViewDirectionProjectionInverse;
+
+    varying vec4 vVertexPosition;
+
+    void main() {
+      vec4 t = uViewDirectionProjectionInverse * vVertexPosition;
+      gl_FragColor = textureCube(uSkyBox, normalize(t.xyz / t.w));
+    }
+  `
+
   const vsLine = `
     attribute vec4 aVertexPosition;
     attribute vec4 aVertexColor;
@@ -144,6 +170,23 @@ const loadPrograms = () => {
     }
   `;
 
+  const loadSkyBoxProgramInfo = (gl) => {
+    const shaderProgram = initShaderProgram(gl, vsSkyBox, fsSkyBox)
+
+    const programInfo = {
+      program: shaderProgram,
+      attribLocations: {
+        vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+      },
+      uniformLocations: {
+        skyBox: gl.getUniformLocation(shaderProgram, 'uSkyBox'),
+        viewDirectionProjectionInverse: gl.getUniformLocation(shaderProgram, 'uViewDirectionProjectionInverse')
+      },
+    }
+
+    return programInfo
+  }
+
   const loadPlanetProgramInfo = (gl) => {
     const shaderProgram = initShaderProgram(gl, vsPlanet, fsPlanet)
 
@@ -191,6 +234,7 @@ const loadPrograms = () => {
   return {
     loadPlanetProgramInfo,
     loadLineProgramInfo,
+    loadSkyBoxProgramInfo,
   }
 }
 

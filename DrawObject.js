@@ -164,6 +164,48 @@ class DrawObject {
   }
 }
 
+class SkyBoxObject extends DrawObject {
+  draw(projectionMatrix, viewMatrix, context) {
+    const vp = mat4.create()
+    const vm2 = mat4.create()
+    mat4.copy(vm2, viewMatrix)
+    vm2[12] = 0
+    vm2[13] = 0
+    vm2[14] = 0
+    mat4.multiply(vp, projectionMatrix, vm2);
+    const vpi = mat4.create()
+    mat4.invert(vpi, vp);
+
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffer)
+    this.gl.vertexAttribPointer(
+      this.programInfo.attribLocations.vertexPosition,
+      2,
+      this.gl.FLOAT,
+      false,
+      0,
+      0
+    )
+    this.gl.enableVertexAttribArray(this.programInfo.attribLocations.vertexPosition)
+  
+    this.gl.useProgram(this.programInfo.program)
+
+    this.gl.activeTexture(this.gl.TEXTURE0)
+    this.gl.bindTexture(this.gl.TEXTURE_CUBE_MAP, this.texture)
+    this.gl.uniform1i(
+      this.programInfo.uniformLocations.skyBox,
+      0
+    )
+    
+    this.gl.uniformMatrix4fv(
+      this.programInfo.uniformLocations.viewDirectionProjectionInverse,
+      false, 
+      vpi
+    )
+    
+    this.gl.drawArrays(this.gl.TRIANGLES, 0, this.drawInfo.nIndices);
+  }
+}
+
 class LineObject extends DrawObject {
   constructor(gl, drawInfo, programInfo) {
     super(gl, drawInfo, programInfo)

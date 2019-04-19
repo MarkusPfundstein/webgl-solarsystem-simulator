@@ -1,5 +1,30 @@
 const initControls = (worldContext) => {
 
+  const toggleShowNames = () => {
+    worldContext.displayData.drawNamesOfBodies = !worldContext.displayData.drawNamesOfBodies
+  }
+
+  const toggleShowOthers = () => {
+    worldContext.simulation.onlyMainPlanets = !worldContext.simulation.onlyMainPlanets
+  }
+
+  const toggleHelio = () => {
+    worldContext.simulation.helioCentric = !worldContext.simulation.helioCentric
+  }
+
+  const incSpeed = () => {
+    worldContext.simulation.speed -= 3
+    if (worldContext.simulation.speed < 1) {
+      worldContext.simulation.speed = 1
+    }
+  }
+  const decSpeed = () => {
+    worldContext.simulation.speed += 3
+    if (worldContext.simulation.speed > 150) {
+      worldContext.simulation.speed = 150
+    }
+  }
+
   const viewButtons = Object.keys(worldContext.cameraDefaults)
 
   viewButtons.forEach(tag => {
@@ -9,6 +34,31 @@ const initControls = (worldContext) => {
       }
       event.preventDefault()
     })
+  })
+
+  document.getElementById('control-incSpeed').addEventListener('click', e => {
+    incSpeed()
+    e.preventDefault()
+  })
+
+  document.getElementById('control-decSpeed').addEventListener('click', e => {
+    decSpeed()
+    e.preventDefault()
+  })
+
+  document.getElementById('control-showNames').addEventListener('click', e => {
+    toggleShowNames()
+    e.preventDefault()
+  })
+
+  document.getElementById('control-showOthers').addEventListener('click', e => {
+    toggleShowOthers()
+    e.preventDefault()
+  })
+
+  document.getElementById('control-toggleHelio').addEventListener('click', e => {
+    toggleHelio()
+    e.preventDefault()
   })
 
   document.getElementById('simuDayButton').addEventListener('click', event => {
@@ -62,23 +112,23 @@ const initControls = (worldContext) => {
         case 'f':
           worldContext.camera.dist += 25
           break;
+        case '+':
         case '=':
-          worldContext.simulation.speed -= 3
-          if (worldContext.simulation.speed < 1) {
-            worldContext.simulation.speed = 1
-          }
+          incSpeed()
           break;
         case '-':
-          worldContext.simulation.speed += 3
-          if (worldContext.simulation.speed > 150) {
-            worldContext.simulation.speed = 150
-          }
+          decSpeed()
           break;
         case '.':
-          worldContext.simulation.helioCentric = !worldContext.simulation.helioCentric
+          toggleHelio()
           break;
+        case 'n':
+          toggleShowNames()
+          break
+        case 'b':
+          worldContext.displayData.showSkyBox = !worldContext.displayData.showSkyBox
         case 'm':
-          worldContext.simulation.onlyMainPlanets = !worldContext.simulation.onlyMainPlanets
+          toggleShowOthers()
           break;
         case 'l':
           worldContext.displayData.drawXYZLines = !worldContext.displayData.drawXYZLines

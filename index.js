@@ -53,7 +53,33 @@ const webGLProgram = (scaleStuff) => {
     },
   }
 
-  const drawScene = (gl, textContext, drawObjects, lineObjects, worldContext, deltaTime) => {
+  const drawAstroBodyNameOnScreen = (gl, textContext, projectionMatrix, viewMatrix, bodyName, bodyPos) => {
+    const vp = mat4.create()
+    mat4.multiply(vp, projectionMatrix, viewMatrix)
+    const pv = vec4.create()
+    const sv = vec4.fromValues(
+      bodyPos[0]-7,
+      bodyPos[1],
+      bodyPos[2],
+      1
+    )
+
+    vec4.transformMat4(pv, 
+      sv,
+      vp)
+
+    pv[0] /= pv[3]
+    pv[1] /= pv[3]
+
+    const px = (pv[0] * 0.5 + 0.5) * gl.canvas.width
+    const py = (pv[1] * -0.5 + 0.5) * gl.canvas.height
+
+    textContext.fillStyle = '#00FF00'
+    textContext.font = '15px serif'
+    textContext.fillText(bodyName, px, py)
+  }
+
+  const drawScene = (gl, textContext, drawObjects, lineObjects, skyBox, worldContext, deltaTime) => {
     gl.clearColor(0.0, 0.0, 0.0, 1.0)
     gl.clearDepth(1.0)
     gl.enable(gl.DEPTH_TEST)
@@ -98,12 +124,18 @@ const webGLProgram = (scaleStuff) => {
 
     const lightPos = Object.values(drawObjects.mainPlanets['Sun'].state.pos).map(x => x*COORD_SCALE)
 
-    for (const o of Object.values(drawObjects.mainPlanets)) {
+    for (const [n, o] of Object.entries(drawObjects.mainPlanets)) {
       o.draw(projectionMatrix, viewMatrix, { lightPos })
+      if (worldContext.displayData.drawNamesOfBodies) {
+        drawAstroBodyNameOnScreen(gl, textContext, projectionMatrix, viewMatrix, n, o.translation)
+      }
     }
     if (!worldContext.simulation.onlyMainPlanets) {
-      for (const o of Object.values(drawObjects.otherStuff)) {
+      for (const [n, o] of Object.entries(drawObjects.otherStuff)) {
         o.draw(projectionMatrix, viewMatrix, { lightPos })
+        if (worldContext.displayData.drawNamesOfBodies) {
+          drawAstroBodyNameOnScreen(gl, textContext, projectionMatrix, viewMatrix, n, o.translation)
+        }
       }
     }
     // weird bugfix-dont remove
@@ -115,8 +147,10 @@ const webGLProgram = (scaleStuff) => {
         o.draw(projectionMatrix, viewMatrix, { })
       }
     }
+    if (worldContext.displayData.showSkyBox) {
+      skyBox.draw(projectionMatrix, viewMatrix, { })
+    }
 
-    textContext.save()
     textContext.translate(0, 0)
     textContext.fillStyle = '#FF0000'
     textContext.font = '18px serif'
@@ -205,10 +239,37 @@ const webGLProgram = (scaleStuff) => {
       Saturn: './tex/saturn.jpg',
       Uranus: './tex/uranus.jpg',
       Neptune: './tex/neptune.jpg',
-      Pluto: './tex/pluto.jpg'
+      Pluto: './tex/pluto.jpg',
     }
+    const skyBoxTexs = [
+      {
+        target: gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+        url: './tex/skybox/1.jpg',
+      },
+      {
+        target: gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+        url: './tex/skybox/1.jpg'
+      },
+      {
+        target: gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+        url: './tex/skybox/1.jpg'
+      },
+      {
+        target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+        url: './tex/skybox/4.jpg'
+      },
+      {
+        target: gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+        url: './tex/skybox/5.jpg'
+      },
+      {
+        target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
+        url: './tex/skybox/6.jpg'
+      },
+    ]
+
     const loadedPs = Object.entries(texs).map(([key, value]) => {
-      return util.loadTexture(gl, key, value)
+      return util.loadTexture(gl, key, value, 1000, 500)
     })
     return Promise.all(loadedPs).then(allTexs => {
       const texMap = {}
@@ -216,6 +277,12 @@ const webGLProgram = (scaleStuff) => {
         texMap[key] = value
       }
       return texMap
+    }).then(texMap => {
+      const skyBoxP = util.loadTextureCube(gl, 'skyBox', skyBoxTexs, 2048, 2048)
+      return skyBoxP.then(([_, skyBoxCube]) => {
+        texMap['__skybox__'] = skyBoxCube
+        return texMap
+      })
     })
   }
 
@@ -232,6 +299,7 @@ const webGLProgram = (scaleStuff) => {
     try {
       textures = await loadAllTextures(gl)
     } catch (e) {
+      console.error(e)
       alert(`Error loading texture for ${e[0]}`)
     }
 
@@ -410,6 +478,8 @@ const webGLProgram = (scaleStuff) => {
       displayData: {
         currentDay: null,
         drawXYZLines: false,
+        drawNamesOfBodies: false,
+        showSkyBox: true,
       },
       simulation: {
         paused: false,
@@ -438,6 +508,8 @@ const webGLProgram = (scaleStuff) => {
       zLineNeg,
     }
 
+    const skyBox = objects.makeSkyBox(gl, textures['__skybox__'])
+
     // will continously update itself
     calcNewPositions(worldContext, drawObjects)
 
@@ -459,7 +531,7 @@ const webGLProgram = (scaleStuff) => {
         o.update(worldContext, deltaTime, {drawObjects})
       }
 
-      drawScene(gl, textCtx, drawObjects, lineObjects, worldContext, deltaTime)
+      drawScene(gl, textCtx, drawObjects, lineObjects, skyBox, worldContext, deltaTime)
     }
     initControls(worldContext)
 

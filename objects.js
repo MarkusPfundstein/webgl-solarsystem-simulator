@@ -1,5 +1,28 @@
 const makeObjects = () => {
 
+  const makeSkyBox = (gl, texture) => {
+    const vertexPositionData = [
+      -1, -1,
+       1, -1,
+      -1,  1,
+      -1,  1,
+       1, -1,
+       1,  1
+    ]
+
+    const drawInfo = {
+      positions: vertexPositionData,
+      nVertices: 6,
+      //textureCoords: textureCoordData,
+      texture,
+    }
+
+    const programInfo = programs.loadSkyBoxProgramInfo(gl)
+
+    const sb = new SkyBoxObject(gl, drawInfo, programInfo)
+    return sb
+  }
+
   const makeSphere = (gl, scale, color, texture, updateFn) => {
     const latitudeBands = 50;
     const longitudeBands = 50;
@@ -236,6 +259,7 @@ const makeObjects = () => {
     makeCube,
     makeLine,
     makeSphere,
+    makeSkyBox,
   }
 }
 
