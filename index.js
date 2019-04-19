@@ -241,6 +241,7 @@ const webGLProgram = (scaleStuff) => {
       Neptune: './tex/neptune.jpg',
       Pluto: './tex/pluto.jpg',
     }
+    // TO-DO: Good skybox
     const skyBoxTexs = [
       {
         target: gl.TEXTURE_CUBE_MAP_POSITIVE_X,
@@ -264,7 +265,7 @@ const webGLProgram = (scaleStuff) => {
       },
       {
         target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
-        url: './tex/skybox/6.jpg'
+        url: './tex/skybox/7.jpg'
       },
     ]
 
